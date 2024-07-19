@@ -11,6 +11,7 @@ class MiscCommand(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="ping")
+    @app_commands.guilds(1262474011955433583)
     async def ping(self, interaction: discord.Interaction) -> None:
         """Ping the bot."""
         await interaction.response.send_message(f"Pong! Latency: **{round(self.bot.latency * 1000)}ms**")

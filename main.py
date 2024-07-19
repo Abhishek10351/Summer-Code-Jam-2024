@@ -1,4 +1,5 @@
 import os
+from functools import partial
 
 import discord
 from discord.ext import commands
@@ -11,9 +12,7 @@ server = os.getenv("SERVER")
 MY_GUILD = discord.Object(id=server)
 
 intents = discord.Intents.all()
-allowed_installs = discord.app_commands.AppInstallationType(
-    guild=discord.Object(id=server),
-)
+allowed_installs = discord.app_commands.AppInstallationType(guild=MY_GUILD)
 
 
 class Bot(commands.Bot):
@@ -27,6 +26,7 @@ class Bot(commands.Bot):
             strip_after_prefix=True,
             intents=intents,
         )
+        self.tree.command = partial(self.tree.command, guild=MY_GUILD)
 
     async def setup_hook(self) -> None:
         """Setups hook for the bot."""

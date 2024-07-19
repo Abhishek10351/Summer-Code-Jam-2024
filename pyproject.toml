@@ -1,3 +1,23 @@
+[tool.poetry]
+name = "Code Jam 2024"
+version = "0.1.0"
+description = "The source code of the bot created by team passionate-parsecs during the Python Discord Code Jam 2024"
+authors = ["Ajay Ratnam <ajratnam.dev@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+discord-py = {extras = ["voice"], version = "^2.4.0"}
+python-dotenv = "^1.0.1"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.5.3"
+pre-commit = "^3.7.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
 [tool.ruff]
 # Increase the line length. This breaks PEP8 but it is way easier to work with.
 # The original reason for this limit was a standard vim terminal is only 79 characters,
