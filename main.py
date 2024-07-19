@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from functools import partial
 
 import discord
@@ -31,15 +32,13 @@ class Bot(commands.Bot):
     async def setup_hook(self) -> None:
         """Setups hook for the bot."""
         # This copies the global commands over to your guild.
-        # await self.tree.sync(guild=MY_GUILD)
-        pass
+        await self.load_extensions()
+        await self.tree.sync(guild=MY_GUILD)
 
     async def on_ready(self) -> None:
         """Call when bot is logged in."""
-        await self.load_extensions()
         await bot.change_presence(activity=discord.Game(name="/help"))
-        await self.tree.sync(guild=MY_GUILD)
-        print(f"Logged in as {bot.user} (ID: {bot.user.id})")
+        print(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\tLogged in as {bot.user} (ID: {bot.user.id})")  # noqa: DTZ005
         print("------")
 
     async def load_extensions(self) -> None:
