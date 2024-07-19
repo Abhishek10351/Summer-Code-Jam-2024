@@ -10,6 +10,7 @@ python = "^3.12"
 discord-py = {extras = ["voice"], version = "^2.4.0"}
 python-dotenv = "^1.0.1"
 colorlog = "^6.8.2"
+motor = {extras = ["srv"], version = "^3.5.1"}
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.5.3"
@@ -40,6 +41,8 @@ select = ["ALL"]
 ignore = [
     # Missing docstrings.
     "D100",
+    "D101",
+    "D102",
     "D104",
     "D105",
     "D106",
