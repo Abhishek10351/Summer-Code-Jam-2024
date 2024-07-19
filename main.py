@@ -1,6 +1,6 @@
+import logging.config
 import os
-from datetime import datetime
-from functools import partial
+from pathlib import Path
 
 import discord
 from discord.ext import commands
@@ -15,6 +15,12 @@ MY_GUILD = discord.Object(id=server)
 intents = discord.Intents.all()
 allowed_installs = discord.app_commands.AppInstallationType(guild=MY_GUILD)
 
+if not Path.exists(Path("logs")):
+    Path.mkdir(Path("logs"))
+
+logging.config.fileConfig("logging.conf")
+logger = logging.getLogger("bot")
+
 
 class Bot(commands.Bot):
     """Bot class."""
@@ -27,19 +33,19 @@ class Bot(commands.Bot):
             strip_after_prefix=True,
             intents=intents,
         )
-        self.tree.command = partial(self.tree.command, guild=MY_GUILD)
 
     async def setup_hook(self) -> None:
         """Setups hook for the bot."""
         # This copies the global commands over to your guild.
         await self.load_extensions()
+        self.tree._guild_commands[MY_GUILD.id] = self.tree._global_commands
+        self.tree._global_commands = {}
         await self.tree.sync(guild=MY_GUILD)
 
     async def on_ready(self) -> None:
         """Call when bot is logged in."""
         await bot.change_presence(activity=discord.Game(name="/help"))
-        print(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\tLogged in as {bot.user} (ID: {bot.user.id})")  # noqa: DTZ005
-        print("------")
+        logger.info("Logged in as %s (ID: %s)", bot.user, bot.user.id)
 
     async def load_extensions(self) -> None:
         """Load all extensions in the cogs directory."""
@@ -47,7 +53,7 @@ class Bot(commands.Bot):
         for filename in os.listdir(extension_path):
             if filename.endswith(".py") and filename != "__init__.py":
                 await bot.load_extension(f"{extension_path}.{filename[:-3]}")
-                print("Extension: " + filename + " loaded.")
+                logger.info("extension %s loaded.", filename)
 
 
 bot = Bot()
