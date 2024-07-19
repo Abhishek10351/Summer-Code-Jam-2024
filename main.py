@@ -59,7 +59,7 @@ class Bot(commands.Bot):
 bot = Bot()
 
 
-@bot.tree.command(name="hello3")
+@bot.tree.command(name="hello")
 async def hello(interaction: discord.Interaction) -> None:
     """Say hello!."""
     await interaction.response.send_message(
