@@ -1,5 +1,6 @@
 import logging.config
 import os
+from pathlib import Path
 
 import discord
 from discord.ext import commands
@@ -14,10 +15,10 @@ MY_GUILD = discord.Object(id=server)
 intents = discord.Intents.all()
 allowed_installs = discord.app_commands.AppInstallationType(guild=MY_GUILD)
 
-if not os.path.exists('logs'):
-    os.makedirs('logs')
+if not Path.exists(Path("logs")):
+    Path.mkdir(Path("logs"))
 
-logging.config.fileConfig('logging.conf')
+logging.config.fileConfig("logging.conf")
 logger = logging.getLogger("bot")
 
 
@@ -44,7 +45,7 @@ class Bot(commands.Bot):
     async def on_ready(self) -> None:
         """Call when bot is logged in."""
         await bot.change_presence(activity=discord.Game(name="/help"))
-        logger.info(f"Logged in as {bot.user} (ID: {bot.user.id})")
+        logger.info("Logged in as %s (ID: %s)", bot.user, bot.user.id)
 
     async def load_extensions(self) -> None:
         """Load all extensions in the cogs directory."""
@@ -52,7 +53,7 @@ class Bot(commands.Bot):
         for filename in os.listdir(extension_path):
             if filename.endswith(".py") and filename != "__init__.py":
                 await bot.load_extension(f"{extension_path}.{filename[:-3]}")
-                logger.info(f"extension {filename} loaded.")
+                logger.info("extension %s loaded.", filename)
 
 
 bot = Bot()

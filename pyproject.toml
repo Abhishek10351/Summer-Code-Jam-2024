@@ -62,4 +62,5 @@ ignore = [
     # Annotations.
     "ANN101",
     "ANN102",
+    "SLF001"
 ]
