@@ -31,14 +31,16 @@ class Bot(commands.Bot):
     async def setup_hook(self) -> None:
         """Setups hook for the bot."""
         # This copies the global commands over to your guild.
-        await self.tree.sync(guild=MY_GUILD)
+        # await self.tree.sync(guild=MY_GUILD)
+        pass
 
     async def on_ready(self) -> None:
         """Call when bot is logged in."""
-        print(f"Logged in as {bot.user} (ID: {bot.user.id})")
-        print("------")
         await self.load_extensions()
         await bot.change_presence(activity=discord.Game(name="/help"))
+        await self.tree.sync(guild=MY_GUILD)
+        print(f"Logged in as {bot.user} (ID: {bot.user.id})")
+        print("------")
 
     async def load_extensions(self) -> None:
         """Load all extensions in the cogs directory."""
