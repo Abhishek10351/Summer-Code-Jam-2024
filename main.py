@@ -68,9 +68,8 @@ class Bot(commands.Bot):
     async def load_extensions(self) -> None:
         """Load all extensions in the cogs directory."""
         extension_path = "cogs"
-        excluded_files = ["__init__.py", "database.py"]
         for filename in os.listdir(extension_path):
-            if filename.endswith(".py") and filename not in excluded_files:
+            if filename.endswith(".py") and filename != "__init__.py":
                 await bot.load_extension(f"{extension_path}.{filename[:-3]}")
                 logger.info("extension %s loaded.", filename)
 

@@ -13,6 +13,7 @@ python-dotenv = "^1.0.1"
 colorlog = "^6.8.2"
 motor = {extras = ["srv"], version = "^3.5.1"}
 cogwatch = "^3.3.1"
+google-generativeai = "^0.7.2"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.5.3"
@@ -26,6 +27,8 @@ build-backend = "poetry.core.masonry.api"
 [tool.taskipy.tasks]
 start = "python main.py"
 lint = "pre-commit run --all-files"
+build = "docker build -t code-jam-bot -target=runtime ."
+run = "docker run -d code-jam-bot"
 
 [tool.ruff]
 # Increase the line length. This breaks PEP8 but it is way easier to work with.
@@ -46,6 +49,8 @@ src = ["src"]
 select = ["ALL"]
 # Ignore some of the most obnoxious linting errors.
 ignore = [
+    # Multi Char Strip.
+    "B005",
     # Missing docstrings.
     "D100",
     "D104",
