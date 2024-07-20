@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 
 import discord
+from cogwatch import watch
 from discord.ext import commands
 from dotenv import load_dotenv
 
@@ -20,6 +21,21 @@ if not Path.exists(Path("logs")):
 
 logging.config.fileConfig("logging.conf")
 logger = logging.getLogger("bot")
+
+
+class InfoFilter(logging.Filter):
+    """Filter to change INFO logs to DEBUG."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        """Change log level in the record."""
+        if record.levelno == logging.INFO:
+            record.levelno = logging.DEBUG
+            record.levelname = "DEBUG"
+        return True
+
+
+cogwatcher = logging.getLogger("cogwatch")
+cogwatcher.addFilter(InfoFilter())
 
 
 class Bot(commands.Bot):
@@ -43,6 +59,7 @@ class Bot(commands.Bot):
         self.tree._global_commands = {}
         await self.tree.sync(guild=MY_GUILD)
 
+    @watch(path="cogs", default_logger=False)
     async def on_ready(self) -> None:
         """Call when bot is logged in."""
         await bot.change_presence(activity=discord.Game(name="/help"))
@@ -51,9 +68,8 @@ class Bot(commands.Bot):
     async def load_extensions(self) -> None:
         """Load all extensions in the cogs directory."""
         extension_path = "cogs"
-        excluded_files = ["__init__.py", "database.py"]
         for filename in os.listdir(extension_path):
-            if filename.endswith(".py") and filename not in excluded_files:
+            if filename.endswith(".py") and filename != "__init__.py":
                 await bot.load_extension(f"{extension_path}.{filename[:-3]}")
                 logger.info("extension %s loaded.", filename)
 
@@ -69,7 +85,8 @@ async def hello(interaction: discord.Interaction) -> None:
     )
 
 
-try:
-    bot.run(BOT_TOKEN)
-except KeyboardInterrupt:
-    print("\nKeyboardInterrupt is raised. Exiting.".upper())
+if __name__ == "__main__":
+    try:
+        bot.run(BOT_TOKEN)
+    except KeyboardInterrupt:
+        print("\nKeyboardInterrupt is raised. Exiting.".upper())

@@ -1,8 +1,7 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-
-from .database import db
+from utils.database import db
 
 
 class QuizCommand(commands.Cog):
@@ -18,7 +17,7 @@ class QuizCommand(commands.Cog):
         user = user or interaction.user
         score = await db.get_score(user.id)
         if score:
-            await interaction.response.send_message(f"Score: {score}")
+            await interaction.response.send_message(f"User's Score: {score}")
         else:
             await interaction.response.send_message(
                 f"{user.mention} has not attempted the quiz yet.",

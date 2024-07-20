@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "The source code of the bot created by team passionate-parsecs during the Python Discord Code Jam 2024"
 authors = ["Ajay Ratnam <ajratnam.dev@gmail.com>"]
 readme = "README.md"
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -11,14 +12,23 @@ discord-py = {extras = ["voice"], version = "^2.4.0"}
 python-dotenv = "^1.0.1"
 colorlog = "^6.8.2"
 motor = {extras = ["srv"], version = "^3.5.1"}
+cogwatch = "^3.3.1"
+google-generativeai = "^0.7.2"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.5.3"
 pre-commit = "^3.7.1"
+taskipy = "^1.13.0"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.taskipy.tasks]
+start = "python main.py"
+lint = "pre-commit run --all-files"
+build = "docker build -t code-jam-bot -target=runtime ."
+run = "docker run -d code-jam-bot"
 
 [tool.ruff]
 # Increase the line length. This breaks PEP8 but it is way easier to work with.
@@ -39,6 +49,8 @@ src = ["src"]
 select = ["ALL"]
 # Ignore some of the most obnoxious linting errors.
 ignore = [
+    # Multi Char Strip.
+    "B005",
     # Missing docstrings.
     "D100",
     "D104",
