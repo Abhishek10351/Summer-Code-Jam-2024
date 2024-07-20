@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 
 import discord
+from cogwatch import watch
 from discord.ext import commands
 from dotenv import load_dotenv
 
@@ -20,6 +21,21 @@ if not Path.exists(Path("logs")):
 
 logging.config.fileConfig("logging.conf")
 logger = logging.getLogger("bot")
+
+
+class InfoFilter(logging.Filter):
+    """Filter to change INFO logs to DEBUG."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        """Change log level in the record."""
+        if record.levelno == logging.INFO:
+            record.levelno = logging.DEBUG
+            record.levelname = "DEBUG"
+        return True
+
+
+cogwatcher = logging.getLogger("cogwatch")
+cogwatcher.addFilter(InfoFilter())
 
 
 class Bot(commands.Bot):
@@ -43,6 +59,7 @@ class Bot(commands.Bot):
         self.tree._global_commands = {}
         await self.tree.sync(guild=MY_GUILD)
 
+    @watch(path="cogs", default_logger=False)
     async def on_ready(self) -> None:
         """Call when bot is logged in."""
         await bot.change_presence(activity=discord.Game(name="/help"))
