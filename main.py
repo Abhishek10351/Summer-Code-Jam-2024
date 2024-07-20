@@ -86,7 +86,8 @@ async def hello(interaction: discord.Interaction) -> None:
     )
 
 
-try:
-    bot.run(BOT_TOKEN)
-except KeyboardInterrupt:
-    print("\nKeyboardInterrupt is raised. Exiting.".upper())
+if __name__ == "__main__":
+    try:
+        bot.run(BOT_TOKEN)
+    except KeyboardInterrupt:
+        print("\nKeyboardInterrupt is raised. Exiting.".upper())

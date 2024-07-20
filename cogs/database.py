@@ -3,7 +3,7 @@ import os
 
 import motor.motor_asyncio
 
-logger = logging.getLogger("bot")
+logger = logging.getLogger("db")
 
 
 class Database:
