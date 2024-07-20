@@ -24,7 +24,11 @@ class FactCommand(commands.Cog):
         if not webhooks:
             webhook = await interaction.channel.create_webhook(name="Discussion")
         else:
-            webhook = webhooks[0]
+            for webhook in webhooks:
+                if webhook.token:
+                    break
+            else:
+                webhook = await interaction.channel.create_webhook(name="Discussion")
 
         for message in conversation:
             user = users[message["userid"] % len(users)]
