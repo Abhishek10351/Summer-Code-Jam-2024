@@ -13,7 +13,7 @@ server = os.getenv("SERVER")
 MY_GUILD = discord.Object(id=server)
 
 intents = discord.Intents.all()
-allowed_installs = discord.app_commands.AppInstallationType(guild=MY_GUILD)
+allowed_installs = discord.app_commands.AppInstallationType(guild=True)
 
 if not Path.exists(Path("logs")):
     Path.mkdir(Path("logs"))
@@ -32,6 +32,7 @@ class Bot(commands.Bot):
             case_insensitive=True,
             strip_after_prefix=True,
             intents=intents,
+            allowed_installs=allowed_installs,
         )
 
     async def setup_hook(self) -> None:
@@ -50,8 +51,9 @@ class Bot(commands.Bot):
     async def load_extensions(self) -> None:
         """Load all extensions in the cogs directory."""
         extension_path = "cogs"
+        excluded_files = ["__init__.py", "database.py"]
         for filename in os.listdir(extension_path):
-            if filename.endswith(".py") and filename != "__init__.py":
+            if filename.endswith(".py") and filename not in excluded_files:
                 await bot.load_extension(f"{extension_path}.{filename[:-3]}")
                 logger.info("extension %s loaded.", filename)
 
