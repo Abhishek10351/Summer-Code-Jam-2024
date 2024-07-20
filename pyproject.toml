@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "The source code of the bot created by team passionate-parsecs during the Python Discord Code Jam 2024"
 authors = ["Ajay Ratnam <ajratnam.dev@gmail.com>"]
 readme = "README.md"
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -16,10 +17,15 @@ cogwatch = "^3.3.1"
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.5.3"
 pre-commit = "^3.7.1"
+taskipy = "^1.13.0"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.taskipy.tasks]
+start = "python main.py"
+lint = "pre-commit run --all-files"
 
 [tool.ruff]
 # Increase the line length. This breaks PEP8 but it is way easier to work with.
