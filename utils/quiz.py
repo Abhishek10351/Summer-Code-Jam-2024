@@ -1,10 +1,15 @@
 import csv
 from collections import defaultdict
 
+# TODO: Convert to MongoDB
+from pathlib import Path
+
 import requests
 
-#TODO: Convert to MongoDB
-CSV_FILE = "cache/active_quizzes.csv"
+# Setup paths
+CACHE_DIR = Path("cache")
+CACHE_DIR.mkdir(exist_ok=True)
+CSV_FILE = CACHE_DIR / "active_quizzes.csv"
 
 number_of_q = 10
 category = 16
@@ -41,39 +46,53 @@ def fetch_quizzes() -> dict:
     except requests.exceptions.Timeout:
         print("Timed out")
 
-    # return response.json()["results"]
+    return response.json()["results"]
 
 
 # for i, quiz in enumerate(fetch_quizzes()):
-#     answers = [quiz["correct_answer"]] + quiz["incorrect_answers"]
-#     shuffle(answers)
+#     answers = [quiz["correct_answer"]] + quiz["incorrect_answers"]  # noqa: ERA001
+#     shuffle(answers)  # noqa: ERA001
 
-#     print(f"{i+1}. {quiz["question"]}")
-#     print("\t".join(answers))
-#     print()
+#     print(f"{i+1}. {quiz["question"]}")  # noqa: ERA001
+#     print("\t".join(answers))  # noqa: ERA001
+#     print()  # noqa: ERA001
 
 
-def read_active_quizzes():
-    active_quizzes = {}
+def read_active_quizzes() -> list:
+    """Return all currently active quizzes."""
+    active_quizzes = []
     try:
-        with open(CSV_FILE) as file:
+        with Path.open(CSV_FILE) as file:
             reader = csv.reader(file)
-            active_quizzes = {int(rows[0]): rows[1] == "True" for rows in reader}
+            active_quizzes = [int(rows[0]) for rows in reader]
     except FileNotFoundError:
         pass
     return active_quizzes
 
-def write_active_quizzes(active_quizzes):
-    with open(CSV_FILE, mode="w", newline="") as file:
+
+def write_active_quizzes(active_quizzes: list) -> None:
+    """Write all currently active quizzes to csv."""
+    with Path.open(CSV_FILE, mode="w", newline="") as file:
         writer = csv.writer(file)
-        for channel_id, status in active_quizzes.items():
-            writer.writerow([channel_id, status])
+        for channel_id in active_quizzes:
+            writer.writerow([channel_id])
 
-def is_quiz_active(channel_id):
-    active_quizzes = read_active_quizzes()
-    return active_quizzes.get(channel_id, False)
 
-def set_quiz_status(channel_id, status):
+def is_quiz_active(channel_id: int) -> bool:
+    """Check if a quiz is active in channel."""
     active_quizzes = read_active_quizzes()
-    active_quizzes[channel_id] = status
+    return channel_id in active_quizzes
+
+
+def set_quiz_active(channel_id: int) -> None:
+    """Mark a channel as having active quiz."""
+    active_quizzes = read_active_quizzes()
+    active_quizzes.append(channel_id)
+    write_active_quizzes(active_quizzes)
+
+
+def set_quiz_ended(channel_id: int) -> None:
+    """Remove quiz from active list."""
+    active_quizzes = read_active_quizzes()
+    active_quizzes.remove(channel_id)
     write_active_quizzes(active_quizzes)

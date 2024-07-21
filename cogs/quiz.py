@@ -7,7 +7,7 @@ from repositories import quiz_repo
 from utils.database import db
 from utils.quiz import (
     is_quiz_active,
-    set_quiz_status,
+    set_quiz_active,
 )
 
 TOPIC_SELECT_TIMER = quiz_repo.topic_select_timer()
@@ -51,7 +51,7 @@ class QuizCommand(commands.Cog):
             return
 
         # Mark the quiz as active
-        set_quiz_status(channel_id, True)
+        set_quiz_active(channel_id)
 
         voting_view = quiz_repo.VotingView()
         await interaction.response.send_message("Choose your topic! Time remaining: **10 seconds**", view=voting_view)
@@ -63,6 +63,7 @@ class QuizCommand(commands.Cog):
 
         await asyncio.sleep(TOPIC_SELECT_TIMER)
         await voting_view.on_timeout()
+
 
 async def setup(bot: commands.Bot) -> None:
     """Setups the Quiz command."""
