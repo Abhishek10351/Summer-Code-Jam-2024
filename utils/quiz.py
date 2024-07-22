@@ -1,4 +1,5 @@
 import csv
+import random
 from collections import defaultdict
 
 # TODO: Convert to MongoDB
@@ -37,9 +38,35 @@ def fetch_categories() -> dict:
     return structured_categories
 
 
-def fetch_quizzes() -> dict:
+# defaultdict(<class 'dict'>, {'General Knowledge': 9, 'Entertainment': {'Books': 10, 'Film': 11, 'Music': 12, 'Musicals & Theatres': 13, 'Television': 14, 'Video Games': 15, 'Board Games': 16, 'Comics': 29, 'Japanese Anime & Manga': 31, 'Cartoon & Animations': 32}, 'Science & Nature': 17, 'Science': {'Computers': 18, 'Mathematics': 19, 'Gadgets': 30}, 'Mythology': 20, 'Sports': 21, 'Geography': 22, 'History': 23, 'Politics': 24, 'Art': 25, 'Celebrities': 26, 'Animals': 27, 'Vehicles': 28})  # noqa: E501
+
+
+def get_id_from_topic(topic: str) -> int:
+    """Return opentdb's topic id from name."""
+    topics = fetch_categories()
+
+    if topic == "Random":
+        topic = random.choice(list(topics.keys()))  # noqa: S311
+
+    if isinstance(topics[topic], int):
+        return topics[topic]
+    return random.choice(list(topics[topic].values()))  # noqa: S311
+
+
+def fetch_quizzes(
+    number_of_q: int,
+    category: int | None = None,
+    difficulty: str | None = None,
+    type: str | None = None,
+) -> dict:
     """Return list of quizzes based on parameters."""
-    url = f"https://opentdb.com/api.php?amount={number_of_q}&category={category}&difficulty={difficulty}&type={type}"
+    url = f"https://opentdb.com/api.php?amount={number_of_q}"
+    if category:
+        url += f"&category={category}"
+    if difficulty:
+        url += f"&difficulty={difficulty}"
+    if type:
+        url += f"&type={type}"
 
     try:
         response = requests.get(url, timeout=(3, 5))
@@ -47,15 +74,6 @@ def fetch_quizzes() -> dict:
         print("Timed out")
 
     return response.json()["results"]
-
-
-# for i, quiz in enumerate(fetch_quizzes()):
-#     answers = [quiz["correct_answer"]] + quiz["incorrect_answers"]  # noqa: ERA001
-#     shuffle(answers)  # noqa: ERA001
-
-#     print(f"{i+1}. {quiz["question"]}")  # noqa: ERA001
-#     print("\t".join(answers))  # noqa: ERA001
-#     print()  # noqa: ERA001
 
 
 def read_active_quizzes() -> list:

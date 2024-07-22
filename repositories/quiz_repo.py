@@ -4,12 +4,9 @@ import time
 
 import discord
 from discord.ui import Button, View
-from utils.quiz import (
-    fetch_categories,
-    set_quiz_ended,
-)
+from utils.quiz import fetch_categories
 
-TOPIC_SELECT_TIMER = 10
+VOTING_TIME = 10
 
 
 class VotingView(View):
@@ -18,8 +15,9 @@ class VotingView(View):
     def __init__(self) -> None:
         super().__init__(timeout=None)
         self.user_votes = {}
-        self.topic_pool = list(fetch_categories().keys())
-        for topic in [*random.sample(self.topic_pool, 3), "Random"]:
+        self.topic_id = fetch_categories()
+
+        for topic in [*random.sample(list(self.topic_id.keys()), 3), "Random"]:
             self.add_item(TopicButton(label=topic, value=topic, voting_view=self, row=0))
 
         for count in [5, 10, 15]:
@@ -30,7 +28,7 @@ class VotingView(View):
         start_time = time.time()
         while True:
             elapsed_time = round(time.time() - start_time)
-            remaining_time = TOPIC_SELECT_TIMER - elapsed_time
+            remaining_time = VOTING_TIME - elapsed_time
             if remaining_time <= 0:
                 break
             timer_message = f"Choose your topic! Time remaining: **{remaining_time-1} seconds**"
@@ -70,15 +68,20 @@ class VotingView(View):
         result_message = f"Started **{selected_number} questions** on the topic: **{selected_topic}**"
         await self.message.edit(content=result_message, view=self)
 
-        # Mark the quiz as ended
-        set_quiz_ended(self.message.channel.id)
+        # Return results
+        return (selected_number, selected_topic)
 
 
 class BaseVotingButton(Button):
-    """Topic select button layouts."""
+    """Base for voting button layouts."""
 
     def __init__(
-        self, label: str, value: int | str, voting_view: VotingView, row: int, style: discord.ButtonStyle,
+        self,
+        label: str,
+        value: int | str,
+        voting_view: VotingView,
+        row: int,
+        style: discord.ButtonStyle,
     ) -> None:
         super().__init__(label=f"{label} (0)", style=style, row=row)
         self.label_text = label
@@ -125,10 +128,75 @@ class NumQuestionButton(BaseVotingButton):
 
     def __init__(self, label: str, count: int, voting_view: VotingView, row: int) -> None:
         super().__init__(
-            label=label, value=count, voting_view=voting_view, row=row, style=discord.ButtonStyle.secondary,
+            label=label,
+            value=count,
+            voting_view=voting_view,
+            row=row,
+            style=discord.ButtonStyle.secondary,
         )
 
 
-def topic_select_timer() -> int:
+class QuestionView(View):
+    """Each question in the quiz."""
+
+    def __init__(self, i: int, question: str, correct: str, incorrects: list, type: str) -> None:
+        super().__init__(timeout=None)
+        self.user_answers = {}
+        self.i = i
+        self.question = question
+        self.correct = correct
+        self.incorrects = incorrects
+
+        if type == "multiple":
+            answers = [*incorrects, correct]
+            random.shuffle(answers)
+        elif type == "boolean":
+            answers = ["True", "False"]
+
+        for answer in answers:
+            self.add_item(AnswerButton(label=answer, question_view=self))
+
+    async def update_message(self) -> None:
+        """Update the message with the current countdown timer."""
+        start_time = time.time()
+        while True:
+            elapsed_time = round(time.time() - start_time)
+            remaining_time = VOTING_TIME - elapsed_time
+            if remaining_time <= 0:
+                break
+            timer_message = f"### {self.i}) {self.question} ({remaining_time-1} seconds)"
+            await self.message.edit(content=timer_message, view=self)
+            await asyncio.sleep(0.5)
+
+    async def on_timeout(self) -> list:
+        """After timeout, highlight correct answer."""
+        # Update the original message to highlight the correct answer and disable buttons
+        await self.message.edit(content=f"### {self.i}) {self.question}", view=self)
+
+        for child in self.children:
+            if child.label == self.correct:
+                child.style = discord.ButtonStyle.success
+            child.disabled = True
+
+        await self.message.edit(view=self)
+
+        return [id for id in self.user_answers if self.user_answers[id] == self.correct]
+
+
+class AnswerButton(Button):
+    """Button for selecting the answer."""
+
+    def __init__(self, label: str, question_view: QuestionView) -> None:
+        super().__init__(label=label, style=discord.ButtonStyle.primary)
+        self.question_view = question_view
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Register user's answer."""
+        user_id = interaction.user.id
+        self.question_view.user_answers[user_id] = self.label
+        await interaction.response.edit_message(view=self.question_view)
+
+
+def voting_time() -> int:
     """Return global variable for use in quiz.py."""
-    return TOPIC_SELECT_TIMER
+    return VOTING_TIME
