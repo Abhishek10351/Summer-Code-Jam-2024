@@ -1,5 +1,4 @@
 import asyncio
-import html
 from collections import defaultdict
 
 import discord
@@ -9,7 +8,9 @@ from repositories import quiz_repo
 from utils.database import db
 from utils.quiz import (
     fetch_quizzes,
-    get_id_from_topic,
+    get_sub_topic_id,
+    get_topic_id,
+    has_sub_topic,
     is_quiz_active,
     set_quiz_active,
     set_quiz_ended,
@@ -32,11 +33,11 @@ class QuizCommand(commands.Cog):
         score = await db.get_score(user.id)
         if score:
             await interaction.response.send_message(
-                f"{user.mention}'s Score: {score}", allowed_mentions=None, ephemeral=True
+                f"{user.mention}'s Score: {score}", allowed_mentions=None, ephemeral=True,
             )
         else:
             await interaction.response.send_message(
-                f"{user.mention} has not attempted the quiz yet.", allowed_mentions=None, ephemeral=True
+                f"{user.mention} has not attempted the quiz yet.", allowed_mentions=None, ephemeral=True,
             )
 
     @app_commands.command(name="quiz")
@@ -55,7 +56,7 @@ class QuizCommand(commands.Cog):
         # Voting phase
         voting_view = quiz_repo.VotingView()
         await interaction.response.send_message(
-            f"Choose your topic! Time remaining: **{VOTING_TIME} seconds**", view=voting_view
+            f"Choose your topic! Time remaining: **{VOTING_TIME} seconds**", view=voting_view,
         )
         voting_view.message = await interaction.original_response()  # Store the original message in the view
 
@@ -63,22 +64,26 @@ class QuizCommand(commands.Cog):
         await asyncio.sleep(VOTING_TIME)
         number, topic = await voting_view.on_timeout()
 
+        # For dynamic topic
+        if has_sub := has_sub_topic(topic):
+            topic_id_correct_count = defaultdict(int)
+
         # Question phase
         participants = defaultdict(int)
         for i in range(1, number + 1):
+            # Get topic id
+            topic_id = get_sub_topic_id(topic, topic_id_correct_count) if has_sub else get_topic_id(topic)
+
             # Fetch question
-            quiz = next(iter(fetch_quizzes(1, get_id_from_topic(topic))))
-            quiz["question"] = html.unescape(quiz["question"])
-            quiz["correct_answer"] = html.unescape(quiz["correct_answer"])
-            quiz["incorrect_answers"] = [html.unescape(answer) for answer in quiz["incorrect_answers"]]
+            quiz = fetch_quizzes(1, topic_id)[0]
 
             # Generate question UI
             question_view = quiz_repo.QuestionView(
-                i, quiz["question"], quiz["correct_answer"], quiz["incorrect_answers"], quiz["type"]
+                i, quiz["question"], quiz["correct_answer"], quiz["incorrect_answers"], quiz["type"],
             )
             question_view.message = await interaction.channel.send(
-                content=f"### {i}) {quiz['question']} ({VOTING_TIME} seconds)", view=question_view
-            )  # noqa: E501
+                content=f"### {i}) {quiz['question']} ({VOTING_TIME} seconds)", view=question_view,
+            )
 
             # Set timer
             asyncio.create_task(question_view.update_message())  # noqa: RUF006
@@ -90,6 +95,10 @@ class QuizCommand(commands.Cog):
                 participants[user_id] += 1
                 score = await db.get_score(user_id)
                 await db.set_score(user_id, score + 1)
+
+                # Register topic_id is correctly answered (for dynamic topic)
+                if has_sub:
+                    topic_id_correct_count[topic_id] += 1
 
         # Retrieve usernames and sort participants by scores
         top_participants = sorted(participants.items(), key=lambda x: x[1], reverse=True)[:3]

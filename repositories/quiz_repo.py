@@ -15,9 +15,9 @@ class VotingView(View):
     def __init__(self) -> None:
         super().__init__(timeout=None)
         self.user_votes = {}
-        self.topic_id = fetch_categories()
+        self.topic_ids = fetch_categories()
 
-        for topic in [*random.sample(list(self.topic_id.keys()), 3), "Random"]:
+        for topic in [*random.sample(list(self.topic_ids.keys()), 3), "Random"]:
             self.add_item(TopicButton(label=topic, value=topic, voting_view=self, row=0))
 
         for count in [5, 10, 15]:
@@ -58,6 +58,9 @@ class VotingView(View):
 
         # Determine the final selection
         selected_topic = determine_winner(topic_buttons)
+        if selected_topic == "Random":
+            selected_topic = random.choice(list(self.topic_ids.keys()))  # noqa: S311
+
         selected_number = determine_winner(question_buttons)
 
         # Update final buttons

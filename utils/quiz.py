@@ -1,4 +1,5 @@
 import csv
+import html
 import random
 from collections import defaultdict
 
@@ -26,31 +27,52 @@ def fetch_categories() -> dict:
     structured_categories = defaultdict(dict)
 
     for category in raw_categories:
-        name: str = category["name"]
+        topic: str = category["name"]
         id = category["id"]
 
-        if ":" in name:
-            name, subname = name.split(": ")
-            structured_categories[name][subname] = id
+        if ":" in topic:
+            topic, subtopic = topic.split(": ")
+            structured_categories[topic][subtopic] = id
         else:
-            structured_categories[name] = id
+            structured_categories[topic] = id
 
     return structured_categories
 
 
 # defaultdict(<class 'dict'>, {'General Knowledge': 9, 'Entertainment': {'Books': 10, 'Film': 11, 'Music': 12, 'Musicals & Theatres': 13, 'Television': 14, 'Video Games': 15, 'Board Games': 16, 'Comics': 29, 'Japanese Anime & Manga': 31, 'Cartoon & Animations': 32}, 'Science & Nature': 17, 'Science': {'Computers': 18, 'Mathematics': 19, 'Gadgets': 30}, 'Mythology': 20, 'Sports': 21, 'Geography': 22, 'History': 23, 'Politics': 24, 'Art': 25, 'Celebrities': 26, 'Animals': 27, 'Vehicles': 28})  # noqa: E501
 
+TOPICS_POOL = fetch_categories()
 
-def get_id_from_topic(topic: str) -> int:
-    """Return opentdb's topic id from name."""
-    topics = fetch_categories()
+def has_sub_topic(topic: str) -> bool:
+    """Determine if the topic name has subtopics or not."""
+    return not isinstance(TOPICS_POOL[topic], int)
 
-    if topic == "Random":
-        topic = random.choice(list(topics.keys()))  # noqa: S311
 
-    if isinstance(topics[topic], int):
-        return topics[topic]
-    return random.choice(list(topics[topic].values()))  # noqa: S311
+def get_topic_id(topic: str) -> int:
+    """Return opentdb's root topic id from name."""
+    return TOPICS_POOL[topic]
+
+
+def get_sub_topic_id(topic: str, topic_id_correct_count: dict) -> int:
+    """Return subtopic id from name and possibly count of how many times the topic is correct."""
+    all_topic_ids = list(TOPICS_POOL[topic].values())
+    if not topic_id_correct_count:
+        return random.choice(all_topic_ids)  # noqa: S311
+
+    sorted_correct_count = [x[0] for x in sorted(topic_id_correct_count.items(), key=lambda x: x[1], reverse=True)]
+    return weighted_selection(all_topic_ids, sorted_correct_count)
+
+
+def weighted_selection(all_ids: list, ordered_correct_count: list) -> int:
+    """Assign weights algorithm. The higher the order of correct_count, the lower the weight."""
+    weights = [len(all_ids)] * len(all_ids)
+
+    max_weight = len(ordered_correct_count)
+    for weight, element in enumerate(ordered_correct_count, start=1):
+        if element in all_ids:
+            weights[all_ids.index(element)] -= max_weight - weight + 1
+
+    return random.choices(all_ids, weights=weights)[0]  # noqa: S311
 
 
 def fetch_quizzes(
@@ -58,7 +80,7 @@ def fetch_quizzes(
     category: int | None = None,
     difficulty: str | None = None,
     type: str | None = None,
-) -> dict:
+) -> list:
     """Return list of quizzes based on parameters."""
     url = f"https://opentdb.com/api.php?amount={number_of_q}"
     if category:
@@ -73,7 +95,15 @@ def fetch_quizzes(
     except requests.exceptions.Timeout:
         print("Timed out")
 
-    return response.json()["results"]
+    quizzes = []
+    for quiz in response.json()["results"]:
+        quiz["question"] = html.unescape(quiz["question"])
+        quiz["correct_answer"] = html.unescape(quiz["correct_answer"])
+        quiz["incorrect_answers"] = [html.unescape(answer) for answer in quiz["incorrect_answers"]]
+
+        quizzes.append(quiz)
+
+    return quizzes
 
 
 def read_active_quizzes() -> list:
