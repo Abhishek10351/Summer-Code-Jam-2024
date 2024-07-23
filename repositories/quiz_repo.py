@@ -4,7 +4,7 @@ import time
 
 import discord
 from discord.ui import Button, View
-from utils.quiz import fetch_categories
+from utils.quiz import fetch_categories, learn_more_url
 
 VOTING_TIME = 10
 
@@ -149,6 +149,7 @@ class QuestionView(View):
         self.question = question
         self.correct = correct
         self.incorrects = incorrects
+        self.url = learn_more_url(self.question)
 
         if type == "multiple":
             answers = [*incorrects, correct]
@@ -173,16 +174,22 @@ class QuestionView(View):
 
     async def on_timeout(self) -> list:
         """After timeout, highlight correct answer."""
-        # Update the original message to highlight the correct answer and disable buttons
+        # Remove timer in question
         await self.message.edit(content=f"### {self.i}) {self.question}", view=self)
 
+        # Highlight correct answer, disable all buttons
         for child in self.children:
             if child.label == self.correct:
                 child.style = discord.ButtonStyle.success
             child.disabled = True
 
+        # Add Learn More button
+        self.add_item(LearnMoreButton(url=self.url))
+
+        # Actually edit the view
         await self.message.edit(view=self)
 
+        # Return correct users
         return [id for id in self.user_answers if self.user_answers[id] == self.correct]
 
 
@@ -198,6 +205,13 @@ class AnswerButton(Button):
         user_id = interaction.user.id
         self.question_view.user_answers[user_id] = self.label
         await interaction.response.edit_message(view=self.question_view)
+
+
+class LearnMoreButton(Button):
+    """Button to open wiki page regarding the question."""
+
+    def __init__(self, url: str) -> None:
+        super().__init__(label="Learn more", url=url, style=discord.ButtonStyle.secondary)
 
 
 def voting_time() -> int:

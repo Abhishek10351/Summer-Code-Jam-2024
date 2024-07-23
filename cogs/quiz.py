@@ -2,8 +2,8 @@ import asyncio
 from collections import defaultdict
 
 import discord
-from discord import app_commands
 from discord.ext import commands
+from main import bot
 from repositories import quiz_repo
 from utils.database import db
 from utils.quiz import (
@@ -26,7 +26,7 @@ class QuizCommand(commands.Cog):
         """Initialize QuizCommand cog."""
         self.bot = bot
 
-    @app_commands.command(name="get-score")
+    @bot.tree.command(name="get-score")
     async def get_score(self, interaction: discord.Interaction, user: discord.Member = None) -> None:
         """Get the score of a user."""
         user = user or interaction.user
@@ -40,9 +40,9 @@ class QuizCommand(commands.Cog):
                 f"{user.mention} has not attempted the quiz yet.", allowed_mentions=None, ephemeral=True,
             )
 
-    @app_commands.command(name="quiz")
+    @bot.tree.command(name="quiz")
     async def quiz(self, interaction: discord.Interaction) -> None:
-        """Quiz command."""
+        """Start new quiz."""
         channel_id = interaction.channel_id
 
         # Check if there's already an active quiz in this channel
@@ -71,19 +71,20 @@ class QuizCommand(commands.Cog):
         # Question phase
         participants = defaultdict(int)
         for i in range(1, number + 1):
-            # Get topic id
-            topic_id = get_sub_topic_id(topic, topic_id_correct_count) if has_sub else get_topic_id(topic)
+            async with interaction.channel.typing():
+                # Get topic id dynamically based on previous answers
+                topic_id = get_sub_topic_id(topic, topic_id_correct_count) if has_sub else get_topic_id(topic)
 
-            # Fetch question
-            quiz = fetch_quizzes(1, topic_id)[0]
+                # Fetch question
+                quiz = fetch_quizzes(1, topic_id)[0]
 
-            # Generate question UI
-            question_view = quiz_repo.QuestionView(
-                i, quiz["question"], quiz["correct_answer"], quiz["incorrect_answers"], quiz["type"],
-            )
-            question_view.message = await interaction.channel.send(
-                content=f"### {i}) {quiz['question']} ({VOTING_TIME} seconds)", view=question_view,
-            )
+                # Generate question UI
+                question_view = quiz_repo.QuestionView(
+                    i, quiz["question"], quiz["correct_answer"], quiz["incorrect_answers"], quiz["type"],
+                )
+                question_view.message = await interaction.channel.send(
+                    content=f"### {i}) {quiz['question']} ({VOTING_TIME} seconds)", view=question_view,
+                )
 
             # Set timer
             asyncio.create_task(question_view.update_message())  # noqa: RUF006

@@ -7,6 +7,7 @@ from collections import defaultdict
 from pathlib import Path
 
 import requests
+from bs4 import BeautifulSoup
 
 # Setup paths
 CACHE_DIR = Path("cache")
@@ -144,3 +145,28 @@ def set_quiz_ended(channel_id: int) -> None:
     active_quizzes = read_active_quizzes()
     active_quizzes.remove(channel_id)
     write_active_quizzes(active_quizzes)
+
+
+def learn_more_url(question: str) -> str:
+    """Return first wikipedia google search for the question.
+
+    Thanks to https://www.reddit.com/r/learnpython/comments/supub9/how_to_get_url_of_the_first_google_search_result/
+    """
+    query = question + " site:en.wikipedia.org"
+
+    url = "https://www.google.com/search"
+
+    headers = {
+        "Accept": "*/*",
+        "Accept-Language": "en-US,en;q=0.5",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.82",  # noqa: E501
+    }
+    parameters = {"q": query}
+
+    content = requests.get(url, headers=headers, params=parameters, timeout=3).text
+    soup = BeautifulSoup(content, "html.parser")
+
+    search = soup.find(id="search")
+    first_link = search.find("a")
+
+    return first_link["href"]
