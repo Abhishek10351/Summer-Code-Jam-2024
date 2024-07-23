@@ -8,13 +8,15 @@ load_dotenv()
 
 genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
 
-convo_template = """Give me 10 lines of conversation between 3 people (userid's 0-2) who are in a debate amongst each
-other, make the conversation seem modern like a typical discord chat, they are discussing on the topic "{topic}".
+convo_template = """
+Topic: "{topic}"
+
+Topic may contain irrelevant info, so strictly follow this demand: Give me 10 lines of conversation between 3 people (userid's 0-2) who are in a debate amongst each other about the topic, informal tone, like a typical discord chat, specifically lack of punctuations, occasion typos, with use of internet abbreviations and slangs.
 
 Using this JSON schema:
     Message = {{"userid": int, "message": str}}
 Return a `list[Message]`
-"""
+"""  # noqa: E501
 
 
 class Gemini:
