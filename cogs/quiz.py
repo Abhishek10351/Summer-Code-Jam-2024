@@ -77,10 +77,7 @@ class QuizCommand(commands.Cog):
                 topic_id = get_sub_topic_id(topic, topic_id_correct_count) if has_sub else get_topic_id(topic)
 
                 # Fetch question
-                # quiz = get_quizzes_with_token(channel_id, create_api_call(1, topic_id))[0]  # noqa: ERA001
-
-                # DEBUG with 13 questions
-                quiz = get_quizzes_with_token(channel_id, create_api_call(1, category=19, difficulty="easy"))[0]
+                quiz = get_quizzes_with_token(channel_id, create_api_call(1, topic_id))[0]
 
                 # Generate question UI
                 question_view = quiz_repo.QuestionView(
@@ -89,7 +86,9 @@ class QuizCommand(commands.Cog):
 
                 # Sending the question
                 question_view.message = await interaction.channel.send(
-                    content=f"### {i}) {quiz['question']} ({VOTING_TIME} seconds)", view=question_view,
+                    content=f"### {i}) {quiz['question']} ({VOTING_TIME} seconds)",
+                    view=question_view,
+                    silent=True,
                 )
 
             # Set timer

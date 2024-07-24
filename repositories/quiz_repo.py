@@ -6,7 +6,7 @@ import discord
 from discord.ui import Button, View
 from utils.quiz import fetch_categories, learn_more_url
 
-VOTING_TIME = 5
+VOTING_TIME = 10
 
 
 class VotingView(View):
@@ -183,12 +183,14 @@ class QuestionView(View):
         # Add Learn More button
         self.add_item(LearnMoreButton(url=self.url))
 
-        # Actually edit the view
-        print("editing the view") # <--- Code stopped working after this line for specific questions
-        print(self.message)
-        await self.message.edit(content=f"### {self.i}) {self.question}", view=self)
+        print(self.url)
 
-        print()
+        try:
+            await self.message.edit(content=f"### {self.i}) {self.question}", view=self)
+        except discord.HTTPException as e:
+            print(f"HTTPException while editing message: {e}")
+
+        print("returning now\n")
         # Return correct users
         return [id for id in self.user_answers if self.user_answers[id] == self.correct]
 

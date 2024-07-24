@@ -135,7 +135,6 @@ def get_quizzes_with_token(channel_id: int, api_url: str) -> list:
         print("token no longer work")
         time.sleep(5)
         new_token = requests.get("https://opentdb.com/api_token.php?command=request", timeout=3).json()["token"]
-        print(new_token)
         channel_tokens[channel_id] = new_token
         write_tokens(channel_tokens)
         return fetch_quizzes(fetch_json(api_url + f"&token={new_token}"))
@@ -209,12 +208,8 @@ def set_quiz_ended(channel_id: int) -> None:
 
 
 def learn_more_url(question: str) -> str:
-    """Return first wikipedia google search for the question.
-
-    Thanks to https://www.reddit.com/r/learnpython/comments/supub9/how_to_get_url_of_the_first_google_search_result/
-    """
+    """Return the first Wikipedia Google search result URL for the question."""
     query = question + " site:en.wikipedia.org"
-
     url = "https://www.google.com/search"
 
     headers = {
@@ -224,10 +219,18 @@ def learn_more_url(question: str) -> str:
     }
     parameters = {"q": query}
 
-    content = requests.get(url, headers=headers, params=parameters, timeout=3).text
+    response = requests.get(url, headers=headers, params=parameters, timeout=3)
+    response.raise_for_status()  # Raise an exception for HTTP errors
+    content = response.text
+
     soup = BeautifulSoup(content, "html.parser")
+    search_results = soup.find_all("a")
 
-    search = soup.find(id="search")
-    first_link = search.find("a")
+    # Find the first Wikipedia link
+    for link in search_results:
+        href: str = link.get("href")
+        if href and "en.wikipedia.org/wiki/" in href:
+            return href
 
-    return first_link["href"]
+    # Default return
+    return "https://en.wikipedia.org"
