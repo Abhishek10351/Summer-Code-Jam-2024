@@ -93,13 +93,10 @@ def create_api_call(
 
 def fetch_json(url: str) -> list:
     """Fetch API from opentdb. Return False if bad response code."""
-    print(url)
     try:
         response = requests.get(url, timeout=(3, 5))
     except requests.exceptions.Timeout:
         print("Timed out")
-
-    print(response.json())
 
     if response.json()["response_code"] != 0:
         return False
@@ -127,12 +124,10 @@ def get_quizzes_with_token(channel_id: int, api_url: str) -> list:
 
     if current_token := channel_tokens.get(channel_id, False):
         # Current token works
-        print("token work")
         if json := fetch_json(api_url + f"&token={current_token}"):
             return fetch_quizzes(json)
 
         # Current token no longer works
-        print("token no longer work")
         time.sleep(5)
         new_token = requests.get("https://opentdb.com/api_token.php?command=request", timeout=3).json()["token"]
         channel_tokens[channel_id] = new_token
@@ -140,7 +135,6 @@ def get_quizzes_with_token(channel_id: int, api_url: str) -> list:
         return fetch_quizzes(fetch_json(api_url + f"&token={new_token}"))
 
     # No token yet
-    print("no token yet")
     new_token = requests.get("https://opentdb.com/api_token.php?command=request", timeout=3).json()["token"]
     channel_tokens[channel_id] = new_token
     write_tokens(channel_tokens)

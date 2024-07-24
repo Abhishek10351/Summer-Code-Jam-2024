@@ -183,14 +183,11 @@ class QuestionView(View):
         # Add Learn More button
         self.add_item(LearnMoreButton(url=self.url))
 
-        print(self.url)
-
         try:
             await self.message.edit(content=f"### {self.i}) {self.question}", view=self)
         except discord.HTTPException as e:
             print(f"HTTPException while editing message: {e}")
 
-        print("returning now\n")
         # Return correct users
         return [id for id in self.user_answers if self.user_answers[id] == self.correct]
 
