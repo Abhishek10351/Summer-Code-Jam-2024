@@ -58,6 +58,12 @@ class Gemini:
 
         return await self.verify(response)
 
+    async def summarize_conversation(self, text: str) -> str:
+        """Summarize the conversation."""
+        response = await self.model.generate_content_async(
+            summary_template.format(text=text)
+        )
+        return await self.verify(response)
 
     async def verify(self, response) -> str:
         """Verify the content of the output and return a valid response."""
