@@ -1,6 +1,7 @@
 import csv
 import html
 import random
+import time
 from collections import defaultdict
 
 # TODO: Convert to MongoDB
@@ -10,14 +11,10 @@ import requests
 from bs4 import BeautifulSoup
 
 # Setup paths
-CACHE_DIR = Path("cache")
+CACHE_DIR = Path(".cache")
 CACHE_DIR.mkdir(exist_ok=True)
-CSV_FILE = CACHE_DIR / "active_quizzes.csv"
-
-number_of_q = 10
-category = 16
-difficulty = "easy"
-type = "multiple"
+ACTIVE_QUIZZES = CACHE_DIR / "active_quizzes.csv"
+QUIZ_TOKENS = CACHE_DIR / "quiz_tokens.csv"
 
 
 def fetch_categories() -> dict:
@@ -43,6 +40,7 @@ def fetch_categories() -> dict:
 # defaultdict(<class 'dict'>, {'General Knowledge': 9, 'Entertainment': {'Books': 10, 'Film': 11, 'Music': 12, 'Musicals & Theatres': 13, 'Television': 14, 'Video Games': 15, 'Board Games': 16, 'Comics': 29, 'Japanese Anime & Manga': 31, 'Cartoon & Animations': 32}, 'Science & Nature': 17, 'Science': {'Computers': 18, 'Mathematics': 19, 'Gadgets': 30}, 'Mythology': 20, 'Sports': 21, 'Geography': 22, 'History': 23, 'Politics': 24, 'Art': 25, 'Celebrities': 26, 'Animals': 27, 'Vehicles': 28})  # noqa: E501
 
 TOPICS_POOL = fetch_categories()
+
 
 def has_sub_topic(topic: str) -> bool:
     """Determine if the topic name has subtopics or not."""
@@ -76,13 +74,13 @@ def weighted_selection(all_ids: list, ordered_correct_count: list) -> int:
     return random.choices(all_ids, weights=weights)[0]  # noqa: S311
 
 
-def fetch_quizzes(
+def create_api_call(
     number_of_q: int,
     category: int | None = None,
     difficulty: str | None = None,
     type: str | None = None,
-) -> list:
-    """Return list of quizzes based on parameters."""
+    ) -> str:
+    """Create API call."""
     url = f"https://opentdb.com/api.php?amount={number_of_q}"
     if category:
         url += f"&category={category}"
@@ -90,14 +88,29 @@ def fetch_quizzes(
         url += f"&difficulty={difficulty}"
     if type:
         url += f"&type={type}"
+    return url
 
+
+def fetch_json(url: str) -> list:
+    """Fetch API from opentdb. Return False if bad response code."""
+    print(url)
     try:
         response = requests.get(url, timeout=(3, 5))
     except requests.exceptions.Timeout:
         print("Timed out")
 
+    print(response.json())
+
+    if response.json()["response_code"] != 0:
+        return False
+
+    return response.json()["results"]
+
+
+def fetch_quizzes(json: list) -> list:
+    """Return list of quizzes based on json."""
     quizzes = []
-    for quiz in response.json()["results"]:
+    for quiz in json:
         quiz["question"] = html.unescape(quiz["question"])
         quiz["correct_answer"] = html.unescape(quiz["correct_answer"])
         quiz["incorrect_answers"] = [html.unescape(answer) for answer in quiz["incorrect_answers"]]
@@ -107,11 +120,59 @@ def fetch_quizzes(
     return quizzes
 
 
+def get_quizzes_with_token(channel_id: int, api_url: str) -> list:
+    """Return list of quizzes with token check."""
+    # Reading all tokens
+    channel_tokens = read_tokens()
+
+    if current_token := channel_tokens.get(channel_id, False):
+        # Current token works
+        print("token work")
+        if json := fetch_json(api_url + f"&token={current_token}"):
+            return fetch_quizzes(json)
+
+        # Current token no longer works
+        print("token no longer work")
+        time.sleep(5)
+        new_token = requests.get("https://opentdb.com/api_token.php?command=request", timeout=3).json()["token"]
+        print(new_token)
+        channel_tokens[channel_id] = new_token
+        write_tokens(channel_tokens)
+        return fetch_quizzes(fetch_json(api_url + f"&token={new_token}"))
+
+    # No token yet
+    print("no token yet")
+    new_token = requests.get("https://opentdb.com/api_token.php?command=request", timeout=3).json()["token"]
+    channel_tokens[channel_id] = new_token
+    write_tokens(channel_tokens)
+    return fetch_quizzes(fetch_json(api_url + f"&token={new_token}"))
+
+
+def read_tokens() -> dict:
+    """Return all currently tokens."""
+    channel_tokens = {}
+    try:
+        with Path.open(QUIZ_TOKENS) as file:
+            reader = csv.reader(file)
+            channel_tokens = {int(row[0]): row[1] for row in reader}
+    except FileNotFoundError:
+        pass
+    return channel_tokens
+
+
+def write_tokens(channel_tokens: dict) -> None:
+    """Write all currently active quizzes to csv."""
+    with Path.open(QUIZ_TOKENS, mode="w", newline="") as file:
+        writer = csv.writer(file)
+        for channel_id in channel_tokens:
+            writer.writerow([channel_id, channel_tokens[channel_id]])
+
+
 def read_active_quizzes() -> list:
     """Return all currently active quizzes."""
     active_quizzes = []
     try:
-        with Path.open(CSV_FILE) as file:
+        with Path.open(ACTIVE_QUIZZES) as file:
             reader = csv.reader(file)
             active_quizzes = [int(rows[0]) for rows in reader]
     except FileNotFoundError:
@@ -121,7 +182,7 @@ def read_active_quizzes() -> list:
 
 def write_active_quizzes(active_quizzes: list) -> None:
     """Write all currently active quizzes to csv."""
-    with Path.open(CSV_FILE, mode="w", newline="") as file:
+    with Path.open(ACTIVE_QUIZZES, mode="w", newline="") as file:
         writer = csv.writer(file)
         for channel_id in active_quizzes:
             writer.writerow([channel_id])

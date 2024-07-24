@@ -6,7 +6,7 @@ import discord
 from discord.ui import Button, View
 from utils.quiz import fetch_categories, learn_more_url
 
-VOTING_TIME = 10
+VOTING_TIME = 5
 
 
 class VotingView(View):
@@ -174,9 +174,6 @@ class QuestionView(View):
 
     async def on_timeout(self) -> list:
         """After timeout, highlight correct answer."""
-        # Remove timer in question
-        await self.message.edit(content=f"### {self.i}) {self.question}", view=self)
-
         # Highlight correct answer, disable all buttons
         for child in self.children:
             if child.label == self.correct:
@@ -187,8 +184,11 @@ class QuestionView(View):
         self.add_item(LearnMoreButton(url=self.url))
 
         # Actually edit the view
-        await self.message.edit(view=self)
+        print("editing the view") # <--- Code stopped working after this line for specific questions
+        print(self.message)
+        await self.message.edit(content=f"### {self.i}) {self.question}", view=self)
 
+        print()
         # Return correct users
         return [id for id in self.user_answers if self.user_answers[id] == self.correct]
 
