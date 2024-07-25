@@ -1,5 +1,5 @@
-import random
 import json
+import random
 
 import discord
 from discord import app_commands
@@ -18,13 +18,14 @@ class FactCommand(commands.Cog):
     async def discuss(self, interaction: discord.Interaction, topic: str) -> None:
         """Create a discussion on the given topic."""
         await interaction.response.send_message(
-            f"Loading conversation... {interaction.user.mention}"
+            f"Loading conversation... {interaction.user.mention}",
         )
         conversation = await gemini_client.generate_conversation(topic)
         data = json.loads(conversation)
         if isinstance(data, dict):
             message = data.get(
-                "summary", "Failed to generate a conversation on given topic."
+                "summary",
+                "Failed to generate a conversation on given topic.",
             )
             embed = discord.Embed(
                 title="Error",
@@ -44,7 +45,8 @@ class FactCommand(commands.Cog):
         )
 
         users = random.sample(
-            [member for member in interaction.guild.members if not member.bot], k=3
+            [member for member in interaction.guild.members if not member.bot],
+            k=3,
         )
 
         webhooks = await interaction.channel.webhooks()
@@ -80,7 +82,8 @@ class FactCommand(commands.Cog):
     async def summarize(self, interaction: discord.Interaction, text: str) -> None:
         """Summarize the given text."""
         await interaction.response.send_message(
-            "Summarizing the conversation...", ephemeral=True
+            "Summarizing the conversation...",
+            ephemeral=True,
         )
         summary = await gemini_client.summarize_conversation(text)
         if summary:

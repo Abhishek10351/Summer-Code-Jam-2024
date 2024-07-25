@@ -84,24 +84,28 @@ async def hello(interaction: discord.Interaction) -> None:
         f"Hi, {interaction.user.mention}.. Whatcha doin?",
     )
 
+
 @bot.tree.command(name="help", description="List of commands and their functions")
 async def help(interaction: discord.Interaction) -> None:
     """Return a list of commands and their functions."""
     embed = discord.Embed(
         title="Help",
         description="List of commands and their functions",
-        color=discord.Color.from_str("#bb8b3b"), #Color of the embed, change to whatever you like
+        color=discord.Color.from_str("#bb8b3b"),  # Color of the embed, change to whatever you like
     )
     commands = bot.tree.get_commands(guild=MY_GUILD)
     for command in commands:
         if command.name != "help":
             parameters = ", ".join([app_commands_parameter.name for app_commands_parameter in command.parameters])
 
-            embed.add_field(name=f"/{command.name}",
-                            value=f"**`Description:`**\n*{command.description}*\n**`Parameters`**: *{parameters}*",
-                            inline=True) #How each command is displayed
+            embed.add_field(
+                name=f"/{command.name}",
+                value=f"**`Description:`**\n*{command.description}*\n**`Parameters`**: *{parameters}*",
+                inline=True,
+            )  # How each command is displayed
 
     await interaction.response.send_message(embed=embed)
+
 
 if __name__ == "__main__":
     try:
