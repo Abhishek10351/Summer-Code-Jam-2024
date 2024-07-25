@@ -9,7 +9,7 @@ from discord import app_commands
 from discord.ext import commands
 from repositories.wiki_repo import FactsView
 from utils.gemini import gemini_client
-from utils.wiki import create_false_statement, get_wiki_facts
+from utils.wiki import create_false_statement, get_wiki_facts, get_wiki_image
 
 
 class FactCommand(commands.Cog):
@@ -164,6 +164,7 @@ class FactCommand(commands.Cog):
         """Generate a list of statements about topic. User must find the one that is incorrect."""
         await interaction.response.defer()
 
+        # Fetching facts from Wiki
         try:
             facts = get_wiki_facts(entry, number=number)
         except wikipedia.DisambiguationError:
@@ -171,30 +172,36 @@ class FactCommand(commands.Cog):
         except wikipedia.PageError:
             await interaction.followup.send(f"The prompt **{entry}** did not match any of our searches. Please try again with a differently worded prompt / query.")  # noqa: E501
 
+        # Alter 1 fact to become incorrect
         false_index = random.randint(0, number-1)  # noqa: S311
         facts[false_index] = create_false_statement(facts[false_index])
 
-        fact_embed = discord.Embed(
+        # Create embeds for statements
+        statements_embed = discord.Embed(
             title="Random Wikipedia Statements",
             description=f"Topic: **{entry}**",
             colour=discord.Colour.random(),
         )
         for i in range(len(facts)):
-            fact_embed.add_field(name=f"Statement #{i+1}",
+            statements_embed.add_field(name=f"Statement #{i+1}",
                             value=facts[i],
                             inline=False)
+        if url := get_wiki_image(entry):
+            statements_embed.set_thumbnail(url=url)
 
+        # Create embed for more info
         question_embed = discord.Embed(
             title="Choose the incorrect statement!",
             color=discord.Color.gold(),
         )
 
+        # Send the message containing 2 embeds and a drop select
         await interaction.followup.send(
-            embeds=[fact_embed, question_embed],
-            view=FactsView(embed=fact_embed,
-                            facts=facts,
-                            false_index=false_index),
-                            )
+            embeds=[statements_embed, question_embed],
+            view=FactsView(embed=statements_embed,
+                           facts=facts,
+                           false_index=false_index),
+                           )
 
 
 async def setup(bot: commands.Bot) -> None:

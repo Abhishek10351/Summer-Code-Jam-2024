@@ -1,13 +1,17 @@
+import json
 import os
 import random
 import re
 
 import google.generativeai as genai
+import requests
 import wikipedia
 from dotenv import load_dotenv
 
 load_dotenv()
 GEMINI_KEY = os.getenv("GOOGLE_API_KEY")
+WIKI_REQUEST = "http://en.wikipedia.org/w/api.php?action=query&prop=pageimages&format=json&piprop=original&titles="
+
 
 genai.configure(api_key=GEMINI_KEY)
 model = genai.GenerativeModel("gemini-1.5-flash")
@@ -23,6 +27,21 @@ def create_false_statement(fact: str) -> str:
     prompt = f"Create a false fact for a True False quiz based on this fact: {fact} in one line. Answer directly."
     response = model.generate_content(prompt)
     return response.text
+
+
+# Credits to https://stackoverflow.com/questions/30595918/is-there-any-api-to-get-image-from-wiki-page
+def get_wiki_image(search_term: str) -> str | bool:
+    """Return featured image URL of search."""
+    try:
+        result = wikipedia.search(search_term, results = 1)
+        wikipedia.set_lang("en")
+        wkpage = wikipedia.WikipediaPage(title = result[0])
+        title = wkpage.title
+        response  = requests.get(WIKI_REQUEST+title, timeout=3)
+        json_data = json.loads(response.text)
+        return next(iter(json_data["query"]["pages"].values()))["original"]["source"]
+    except Exception:
+        return False
 
 
 # Credits to https://stackoverflow.com/questions/4576077/how-can-i-split-a-text-into-sentences
