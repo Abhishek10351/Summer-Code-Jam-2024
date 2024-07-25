@@ -34,11 +34,15 @@ class QuizCommand(commands.Cog):
         score = await db.get_score(user.id)
         if score:
             await interaction.response.send_message(
-                f"{user.mention}'s Score: {score}", allowed_mentions=None, ephemeral=True,
+                f"{user.mention}'s Score: {score}",
+                allowed_mentions=None,
+                ephemeral=True,
             )
         else:
             await interaction.response.send_message(
-                f"{user.mention} has not attempted the quiz yet.", allowed_mentions=None, ephemeral=True,
+                f"{user.mention} has not attempted the quiz yet.",
+                allowed_mentions=None,
+                ephemeral=True,
             )
 
     @bot.tree.command(name="quiz")
@@ -57,7 +61,8 @@ class QuizCommand(commands.Cog):
         # Voting phase
         voting_view = quiz_repo.VotingView()
         await interaction.response.send_message(
-            f"Choose your topic! Time remaining: **{VOTING_TIME} seconds**", view=voting_view,
+            f"Choose your topic! Time remaining: **{VOTING_TIME} seconds**",
+            view=voting_view,
         )
         voting_view.message = await interaction.original_response()  # Store the original message in the view
 
@@ -81,7 +86,11 @@ class QuizCommand(commands.Cog):
 
                 # Generate question UI
                 question_view = quiz_repo.QuestionView(
-                    i, quiz["question"], quiz["correct_answer"], quiz["incorrect_answers"], quiz["type"],
+                    i,
+                    quiz["question"],
+                    quiz["correct_answer"],
+                    quiz["incorrect_answers"],
+                    quiz["type"],
                 )
 
                 # Sending the question

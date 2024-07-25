@@ -1,10 +1,10 @@
 import json
 import os
+import traceback
 
 import google.generativeai as genai
-from google.generativeai.types import HarmCategory, HarmBlockThreshold
 from dotenv import load_dotenv
-from google.generativeai.types import HarmBlockThreshold, HarmCategory
+from google.generativeai.types import HarmBlockThreshold, HarmCategory, generation_types
 
 load_dotenv()
 
@@ -56,7 +56,7 @@ class Gemini:
     async def generate_conversation(self, prompt: str) -> str:
         """Generate a conversation based on the given topic."""
         response = await self.model.generate_content_async(
-            convo_template.format(topic=prompt)
+            convo_template.format(topic=prompt),
         )
 
         return await self.verify(response)
@@ -64,44 +64,38 @@ class Gemini:
     async def summarize_conversation(self, text: str) -> str:
         """Summarize the conversation."""
         response = await self.model.generate_content_async(
-            summary_template.format(text=text)
+            summary_template.format(text=text),
         )
         return await self.verify(response)
 
-    async def verify(self, response) -> str:
+    async def verify(self, response: generation_types.AsyncGenerateContentResponse) -> str:
         """Verify the content of the output and return a valid response."""
         if response.prompt_feedback.block_reason:
             reason = response.prompt_feedback.block_reason.name
             if reason == "SAFETY":
                 message = "Your request was blocked because of safety reasons."
-                return (
-                    '{"summary": "Your request was blocked because of safety reasons."}'
-                )
             else:
                 message = "Your request was blocked because of other reasons."
-                return (
-                    '{"summary": "Your request was blocked because of other reasons."}'
-                )
-        elif response.candidates[0].finish_reason not in [
+            return f'{{"summary": {message}}}'
+        if response.candidates[0].finish_reason not in [
             "STOP",
             "FINISH_REASON_UNSPECIFIED",
         ]:
-
             try:
                 return response.text
-            except Exception as e:
-                print(e)
+            except Exception:
+                traceback.print_exc()
             data = self.finish_errors.get(
-                response.candidates[0].finish_reason.name, "Unknown error."
+                response.candidates[0].finish_reason.name,
+                "Unknown error.",
             )
             return json.dumps({"summary": f"{data}"})
 
-        else:
-            try:
-                return response.text
-            except Exception as e:
-                print(e)
-                return '{"summary": "Please provide a valid conversation."}'
+        try:
+            return response.text
+        except Exception:
+            traceback.print_exc()
+            return '{"summary": "Please provide a valid conversation."}'
 
 
 gemini_client = Gemini()
