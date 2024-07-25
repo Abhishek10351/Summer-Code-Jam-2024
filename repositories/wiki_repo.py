@@ -9,9 +9,9 @@ class FactsDropdown(Select):
         self.embed = embed
         self.false_index = false_index
 
-        options = [discord.SelectOption(label=f"Fact no. {i+1}", value=i) for i in range(len(facts))]
+        options = [discord.SelectOption(label=f"Statement #{i+1}", value=i) for i in range(len(facts))]
 
-        super().__init__(placeholder="Which one is the wrong fact?", options=options, min_values=1, max_values=1)
+        super().__init__(placeholder="Which statement is incorrect?", options=options, min_values=1, max_values=1)
 
         self.rightEmbed = discord.Embed(
             title="Correct!",
@@ -19,7 +19,7 @@ class FactsDropdown(Select):
         )
         self.wrongEmbed = discord.Embed(
             title="Wrong!",
-            description=f"The False Fact was Fact no. {false_index+1}: {facts[false_index]}",
+            description=f"The False Statement was #{false_index+1}: {facts[false_index]}",
             color=discord.Color.red(),
         )
 
@@ -29,7 +29,7 @@ class FactsDropdown(Select):
         embeds = [self.embed]
 
         if int(self.values[0]) == self.false_index:
-            self.rightEmbed.description = f"You selected {int(self.values[0])+1}"
+            self.rightEmbed.description = f"You selected #{int(self.values[0])+1}"
             embeds.append(self.rightEmbed)
         else:
             embeds.append(self.wrongEmbed)

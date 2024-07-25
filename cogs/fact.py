@@ -9,7 +9,7 @@ from discord import app_commands
 from discord.ext import commands
 from repositories.wiki_repo import FactsView
 from utils.gemini import gemini_client
-from utils.wiki import get_false_fact, get_wiki_results
+from utils.wiki import create_false_statement, get_wiki_facts
 
 
 class FactCommand(commands.Cog):
@@ -159,43 +159,42 @@ class FactCommand(commands.Cog):
             )
             await interaction.followup.send(content=None, embed=embed)
 
-    @app_commands.command(name="search", description="returns a number of random facts based on the prompt")
+    @app_commands.command(name="search", description="Return a number of random facts based on the prompt")
     async def search(self, interaction: discord.Interaction, entry: str, number: int = 5) -> None:
-        """Lorem ipsum."""
+        """Generate a list of statements about topic. User must find the one that is incorrect."""
         await interaction.response.defer()
 
         try:
-            facts = get_wiki_results(entry, number=number)
-
-            false_index = random.randint(0, number-1)  # noqa: S311
-            facts[false_index] = get_false_fact(facts[false_index])
-
-            fact_embed = discord.Embed(
-                title="Random Wikipedia Facts",
-                description=f"List of random wikipedia facts on the topic **{entry}**",
-                colour=discord.Colour.random(),
-            )
-            for i in range(len(facts)):
-                fact_embed.add_field(name=f"Fact no. {i+1}",
-                                value=facts[i],
-                                inline=False)
-
-            question_embed = discord.Embed(
-                title="Choose the fact that is wrong!",
-                color=discord.Color.gold(),
-            )
-
-            await interaction.followup.send(
-                embeds=[fact_embed, question_embed],
-                view=FactsView(embed=fact_embed,
-                               facts=facts,
-                               false_index=false_index),
-                               )
-
+            facts = get_wiki_facts(entry, number=number)
         except wikipedia.DisambiguationError:
             await interaction.followup.send(f"The prompt **{entry}** can refer to many different things, please be more specific!")  # noqa: E501
         except wikipedia.PageError:
             await interaction.followup.send(f"The prompt **{entry}** did not match any of our searches. Please try again with a differently worded prompt / query.")  # noqa: E501
+
+        false_index = random.randint(0, number-1)  # noqa: S311
+        facts[false_index] = create_false_statement(facts[false_index])
+
+        fact_embed = discord.Embed(
+            title="Random Wikipedia Statements",
+            description=f"Topic: **{entry}**",
+            colour=discord.Colour.random(),
+        )
+        for i in range(len(facts)):
+            fact_embed.add_field(name=f"Statement #{i+1}",
+                            value=facts[i],
+                            inline=False)
+
+        question_embed = discord.Embed(
+            title="Choose the incorrect statement!",
+            color=discord.Color.gold(),
+        )
+
+        await interaction.followup.send(
+            embeds=[fact_embed, question_embed],
+            view=FactsView(embed=fact_embed,
+                            facts=facts,
+                            false_index=false_index),
+                            )
 
 
 async def setup(bot: commands.Bot) -> None:
