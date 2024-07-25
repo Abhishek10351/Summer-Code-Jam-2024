@@ -1,6 +1,4 @@
-import asyncio
 import random
-import time
 
 import discord
 from discord.ui import Button, View
@@ -22,18 +20,6 @@ class VotingView(View):
 
         for count in [5, 10, 15]:
             self.add_item(NumQuestionButton(label=f"{count} Questions", count=count, voting_view=self, row=1))
-
-    async def update_message(self) -> None:
-        """Update the message with the current countdown timer."""
-        start_time = time.time()
-        while True:
-            elapsed_time = round(time.time() - start_time)
-            remaining_time = VOTING_TIME - elapsed_time
-            if remaining_time <= 0:
-                break
-            timer_message = f"Choose your topic! Time remaining: **{remaining_time-1} seconds**"
-            await self.message.edit(content=timer_message, view=self)
-            await asyncio.sleep(0.5)
 
     async def on_timeout(self) -> None:
         """After timeout, select topic and number of questions for the coming quizzes."""
@@ -159,18 +145,6 @@ class QuestionView(View):
 
         for answer in answers:
             self.add_item(AnswerButton(label=answer, question_view=self))
-
-    async def update_message(self) -> None:
-        """Update the message with the current countdown timer."""
-        start_time = time.time()
-        while True:
-            elapsed_time = round(time.time() - start_time)
-            remaining_time = VOTING_TIME - elapsed_time
-            if remaining_time <= 0:
-                break
-            timer_message = f"### {self.i}) {self.question} ({remaining_time-1} seconds)"
-            await self.message.edit(content=timer_message, view=self)
-            await asyncio.sleep(0.5)
 
     async def on_timeout(self) -> list:
         """After timeout, highlight correct answer."""

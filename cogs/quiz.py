@@ -1,4 +1,5 @@
 import asyncio
+import time
 from collections import defaultdict
 
 import discord
@@ -61,12 +62,11 @@ class QuizCommand(commands.Cog):
         # Voting phase
         voting_view = quiz_repo.VotingView()
         await interaction.response.send_message(
-            f"Choose your topic! Time remaining: **{VOTING_TIME} seconds**",
+            f"Choose your topic! Ends **<t:{int(time.time()) + 11}:R>**",
             view=voting_view,
         )
         voting_view.message = await interaction.original_response()  # Store the original message in the view
 
-        asyncio.create_task(voting_view.update_message())  # noqa: RUF006
         await asyncio.sleep(VOTING_TIME)
         number, topic = await voting_view.on_timeout()
 
@@ -94,14 +94,17 @@ class QuizCommand(commands.Cog):
                 )
 
                 # Sending the question
+                if i == number:
+                    content = f"### {i}) {quiz['question']} Quiz ends **<t:{int(time.time()) + 11}:R>**"
+                else:
+                    content = f"### {i}) {quiz['question']} Next question **<t:{int(time.time()) + 11}:R>**"
                 question_view.message = await interaction.channel.send(
-                    content=f"### {i}) {quiz['question']} ({VOTING_TIME} seconds)",
+                    content=content,
                     view=question_view,
                     silent=True,
                 )
 
             # Set timer
-            asyncio.create_task(question_view.update_message())  # noqa: RUF006
             await asyncio.sleep(VOTING_TIME)
             correct_users = await question_view.on_timeout()
 
