@@ -1,3 +1,4 @@
+import asyncio
 import json
 import random
 import re
@@ -18,7 +19,7 @@ class FactCommand(commands.Cog):
     @app_commands.command(name="discuss")
     async def discuss(self, interaction: discord.Interaction, topic: str) -> None:
         """Create a discussion on the given topic."""
-        await interaction.response.send_message("Loading conversation...")
+        await interaction.response.defer()
 
         # Generate convo from gemini
         conversation = await gemini_client.generate_conversation(topic)
@@ -32,7 +33,7 @@ class FactCommand(commands.Cog):
                 description=message,
                 color=discord.Color.red(),
             )
-            await interaction.edit_original_response(content=None, embed=embed)
+            await interaction.followup.send(content=None, embed=embed)
             return
 
         # Send convo start embed
@@ -40,7 +41,7 @@ class FactCommand(commands.Cog):
             title=f"You have started a discussion on the topic: **{topic}**",
             color=discord.Color.blurple(),
         )
-        await interaction.edit_original_response(content=None, embed=embed)
+        await interaction.followup.send(content=None, embed=embed)
 
         # Assign users for the generated convo
         convo_starter = interaction.user
@@ -64,6 +65,7 @@ class FactCommand(commands.Cog):
         for message in data:
             user = users[message["userid"] % len(users)]
             avatar_url = user.avatar.url if user.avatar else user.default_avatar.url
+            await asyncio.sleep(len(message["message"])/7)
             await webhook.send(
                 content=message["message"],
                 username=user.display_name,
@@ -73,7 +75,7 @@ class FactCommand(commands.Cog):
     @app_commands.command(name="summarize")
     async def summarize(self, interaction: discord.Interaction, text: str) -> None:
         """Summarize the given text."""
-        await interaction.response.send_message("Summarizing the conversation...")
+        await interaction.response.defer()
         summary = await gemini_client.summarize_conversation(text)
         if summary:
             summarized_text = json.loads(summary)["summary"]
@@ -83,14 +85,14 @@ class FactCommand(commands.Cog):
                 color=discord.Color.blurple(),
             )
 
-            await interaction.response.edit_message(content=None, embed=embed)
+            await interaction.followup.send(content=None, embed=embed)
         else:
             embed = discord.Embed(
                 title="Error",
                 description="Failed to summarize the conversation.",
                 color=discord.Color.red(),
             )
-            await interaction.response.edit_message(content=None, embed=embed)
+            await interaction.followup.send(content=None, embed=embed)
 
     @app_commands.command(name="shortify")
     async def shortify(self, interaction: discord.Interaction, start: str, end: str) -> None:
@@ -111,14 +113,19 @@ class FactCommand(commands.Cog):
             return re.sub(r"<@?(\d+)>", replace_tag, message.content)
 
         channel = interaction.channel
-        await interaction.response.send_message("Working on it!")
+        await interaction.response.defer()
 
         # Messages verification
         try:
             msg1 = await channel.fetch_message(parse_msg_id(start))
             msg2 = await channel.fetch_message(parse_msg_id(end))
         except (discord.NotFound, ValueError):
-            await interaction.edit_original_response(content="One or both message IDs are invalid.")
+            embed = discord.Embed(
+                title="Error",
+                description="One or both message IDs are invalid.",
+                color=discord.Color.red(),
+            )
+            await interaction.followup.send(embed=embed)
             return
 
         # Ensure msg1 is the older message
@@ -140,14 +147,14 @@ class FactCommand(commands.Cog):
                 description=summarized_text,
                 color=discord.Color.blurple(),
             )
-            await interaction.edit_original_response(content=None, embed=embed)
+            await interaction.followup.send(content=None, embed=embed)
         else:
             embed = discord.Embed(
                 title="Error",
                 description="Failed to summarize the conversation.",
                 color=discord.Color.red(),
             )
-            await interaction.edit_original_response(content=None, embed=embed)
+            await interaction.followup.send(content=None, embed=embed)
 
 async def setup(bot: commands.Bot) -> None:
     """Setups the Fact command."""

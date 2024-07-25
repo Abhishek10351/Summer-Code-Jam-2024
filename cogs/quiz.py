@@ -34,14 +34,22 @@ class QuizCommand(commands.Cog):
         user = user or interaction.user
         score = await db.get_score(user.id)
         if score:
+            embed = discord.Embed(
+                description=f"{user.mention}'s Score: {score}",
+                color=discord.Color.blurple(),
+            )
             await interaction.response.send_message(
-                f"{user.mention}'s Score: {score}",
+                embed=embed,
                 allowed_mentions=None,
                 ephemeral=True,
             )
         else:
+            embed = discord.Embed(
+                description=f"{user.mention} has not attempted the quiz yet.",
+                color=discord.Color.red(),
+            )
             await interaction.response.send_message(
-                f"{user.mention} has not attempted the quiz yet.",
+                embed=embed,
                 allowed_mentions=None,
                 ephemeral=True,
             )
@@ -53,7 +61,11 @@ class QuizCommand(commands.Cog):
 
         # Check if there's already an active quiz in this channel
         if is_quiz_active(channel_id):
-            await interaction.response.send_message("A quiz is already running in this channel.", ephemeral=True)
+            embed = discord.Embed(
+                description="A quiz is already running in this channel.",
+                color=discord.Color.red(),
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
             return
 
         # Mark the quiz as active
@@ -127,13 +139,20 @@ class QuizCommand(commands.Cog):
 
         # Send the top 3 users
         if top_users:
-            result_message = "## Top 3 participants:\n"
+            result_message = ""
             for rank, (user_name, score) in enumerate(top_users, start=1):
                 result_message += f"{rank}. **{user_name}** - {score} points\n"
+            embed = discord.Embed(
+                title="Top 3 participants",
+                description=result_message,
+                color=discord.Color.blurple(),
+            )
         else:
-            result_message = "## No participants."
-
-        await interaction.channel.send(result_message)
+            embed = discord.Embed(
+                title="No participants.",
+                color=discord.Color.red(),
+            )
+        await interaction.channel.send(content="## Quiz ended", embed=embed)
 
         # Mark the quiz as ended
         set_quiz_ended(channel_id)
