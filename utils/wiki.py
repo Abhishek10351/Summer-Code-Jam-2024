@@ -1,4 +1,3 @@
-import json
 import os
 import random
 import re
@@ -6,6 +5,7 @@ import re
 import google.generativeai as genai
 import requests
 import wikipedia
+from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -24,22 +24,37 @@ def get_wiki_facts(prompt: str, number: int = 5) -> list:
 
 def create_false_statement(fact: str) -> str:
     """Get a false fact based on a true fact."""
-    prompt = f"Create a false fact for a True False quiz based on this fact: {fact} in one line. Answer directly."
+    prompt = f"Create a false fact for a True False quiz based on this fact: {fact} in one line. Answer directly and only the false statement."  # noqa: E501
     response = model.generate_content(prompt)
     return response.text
 
 
-# Credits to https://stackoverflow.com/questions/30595918/is-there-any-api-to-get-image-from-wiki-page
 def get_wiki_image(search_term: str) -> str | bool:
     """Return featured image URL of search."""
     try:
-        result = wikipedia.search(search_term, results = 1)
         wikipedia.set_lang("en")
-        wkpage = wikipedia.WikipediaPage(title = result[0])
-        title = wkpage.title
-        response  = requests.get(WIKI_REQUEST+title, timeout=3)
-        json_data = json.loads(response.text)
-        return next(iter(json_data["query"]["pages"].values()))["original"]["source"]
+        result = wikipedia.search(search_term, results=1)
+        if not result:
+            return False
+
+        wkpage = wikipedia.WikipediaPage(title=result[0])
+        response = requests.get(wkpage.url, timeout=3)
+        response.raise_for_status()
+
+        soup = BeautifulSoup(response.text, "html.parser")
+        infobox = soup.find("table", {"class": "infobox"})
+        if not infobox:
+            return False
+
+        image_tag = infobox.find("img", class_="mw-file-element")
+        if not image_tag:
+            return False
+
+        image_url = image_tag["src"]
+        if image_url.startswith("//"):
+            image_url = "https:" + image_url
+
+        return image_url  # noqa: TRY300
     except Exception:
         return False
 

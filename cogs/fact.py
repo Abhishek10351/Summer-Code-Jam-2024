@@ -2,6 +2,7 @@ import asyncio
 import json
 import random
 import re
+import time
 
 import discord
 import wikipedia
@@ -197,6 +198,7 @@ class FactCommand(commands.Cog):
 
         # Send the message containing 2 embeds and a drop select
         await interaction.followup.send(
+            content=f"**<t:{int(time.time()) + 60}:R>**",
             embeds=[statements_embed, question_embed],
             view=FactsView(embed=statements_embed,
                            facts=facts,
