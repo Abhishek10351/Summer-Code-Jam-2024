@@ -80,7 +80,7 @@ def create_api_call(
     difficulty: str | None = None,
     type: str | None = None,
 ) -> str:
-    """Create API call."""
+    """Create API call. Could've used params but it'll interfere with token."""
     url = f"https://opentdb.com/api.php?amount={number_of_q}"
     if category:
         url += f"&category={category}"

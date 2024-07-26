@@ -80,7 +80,18 @@ class QuizCommand(commands.Cog):
         voting_view.message = await interaction.original_response()  # Store the original message in the view
 
         await asyncio.sleep(VOTING_TIME)
-        number, topic = await voting_view.on_timeout()
+        if timeout := await voting_view.on_timeout():
+            number, topic = timeout
+
+        # Quiz is cancelled
+        else:
+            embed = discord.Embed(
+                title="Quiz is cancelled.",
+                color=discord.Color.red(),
+            )
+            await interaction.edit_original_response(content=None, embed=embed, view=None)
+            set_quiz_ended(channel_id)
+            return
 
         # For dynamic topic
         if has_sub := has_sub_topic(topic):

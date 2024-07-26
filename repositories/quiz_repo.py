@@ -21,6 +21,10 @@ class VotingView(View):
         for count in [5, 10, 15]:
             self.add_item(NumQuestionButton(label=f"{count} Questions", count=count, voting_view=self, row=1))
 
+        self.cancel_button = CancelButton(voting_view=self, row=2)
+        self.add_item(self.cancel_button)
+
+
     async def on_timeout(self) -> None:
         """After timeout, select topic and number of questions for the coming quizzes."""
 
@@ -38,11 +42,15 @@ class VotingView(View):
                     child.style = discord.ButtonStyle.success
                 child.disabled = True
 
-        # Separate TopicButton and NumQuestionButton
+        # Separate TopicButton and NumQuestionButton and CancelButton
         topic_buttons = [child for child in self.children if isinstance(child, TopicButton)]
         question_buttons = [child for child in self.children if isinstance(child, NumQuestionButton)]
+        cancel_button = next(child for child in self.children if isinstance(child, CancelButton))
 
         # Determine the final selection
+        if cancel_button.is_cancelled:
+            return False
+
         selected_topic = determine_winner(topic_buttons)
         if selected_topic == "Random":
             selected_topic = random.choice(list(self.topic_ids.keys()))  # noqa: S311
@@ -52,6 +60,7 @@ class VotingView(View):
         # Update final buttons
         update_button(topic_buttons, selected_topic)
         update_button(question_buttons, selected_number)
+        self.remove_item(self.cancel_button)
 
         # Edit bot's message
         result_message = f"Started **{selected_number} questions** on the topic: **{selected_topic}**"
@@ -185,6 +194,35 @@ class LearnMoreButton(Button):
 
     def __init__(self, url: str) -> None:
         super().__init__(label="Learn more", url=url, style=discord.ButtonStyle.secondary)
+
+
+class CancelButton(Button):
+    """Cancel the quiz. Only available during voting phase."""
+
+    def __init__(self, voting_view: VotingView, row: int) -> None:
+        super().__init__(label="Cancel", row=row, style=discord.ButtonStyle.red)
+        self.label_text = "Cancel"
+        self.votes = 0
+        self.voting_view = voting_view
+        self.is_cancelled = False
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        """Register and update buttons."""
+        user_id = interaction.user.id
+        user_selections = self.voting_view.user_votes.get(user_id, {})
+        cancel_value = user_selections.get("cancel", False)
+
+        # Register the new vote
+        user_selections["cancel"] = not(cancel_value)
+        self.voting_view.user_votes[user_id] = user_selections
+        self.votes += 1 if not(cancel_value) else -1
+        self.label = f"{self.label_text} ({self.votes}/{len(self.voting_view.user_votes)})"
+
+        # Determine cancel state
+        self.is_cancelled = False if self.votes == 0 else self.votes > len(self.voting_view.user_votes)/2
+
+        # Update the view
+        await interaction.response.edit_message(view=self.voting_view)
 
 
 def voting_time() -> int:
