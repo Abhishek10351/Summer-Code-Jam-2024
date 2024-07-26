@@ -51,14 +51,17 @@ class VotingView(View):
         if cancel_button.is_cancelled:
             return False
 
-        selected_topic = determine_winner(topic_buttons)
-        if selected_topic == "Random":
+        # If Random, display the Random button as pressed while still send the random topic
+        most_vote_topic = determine_winner(topic_buttons)
+        if most_vote_topic == "Random":  # noqa: SIM108
             selected_topic = random.choice(list(self.topic_ids.keys()))  # noqa: S311
+        else:
+            selected_topic = most_vote_topic
 
         selected_number = determine_winner(question_buttons)
 
         # Update final buttons
-        update_button(topic_buttons, selected_topic)
+        update_button(topic_buttons, most_vote_topic)
         update_button(question_buttons, selected_number)
         self.remove_item(self.cancel_button)
 
