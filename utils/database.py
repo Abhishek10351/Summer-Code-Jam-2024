@@ -59,14 +59,16 @@ class Database:
         """Clear the command cache."""
         await self.commands_cache.delete_many({})
 
-    async def get_token(self, channel_id: int) -> dict:
+    async def get_token(self, server_id: int) -> dict:
         """Return all currently tokens."""
-        return await self.quiz_tokens.find_one({"channel_id": channel_id})
+        if result := await self.quiz_tokens.find_one({"server_id": server_id}):
+            return result.get("token")
+        return False
 
-    async def change_token(self, channel_id: int, token: str) -> None:
+    async def change_token(self, server_id: int, token: str) -> None:
         """Change the token of a channel."""
         await self.quiz_tokens.update_one(
-            {"channel_id": channel_id},
+            {"server_id": server_id},
             {"$set": {"token": token}},
             upsert=True,
         )

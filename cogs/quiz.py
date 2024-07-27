@@ -12,6 +12,7 @@ from utils.quiz import (
     get_sub_topic_id,
     get_topic_id,
     has_sub_topic,
+    result_embed,
 )
 
 VOTING_TIME = quiz_repo.voting_time()
@@ -58,9 +59,10 @@ class QuizCommand(commands.Cog):
     @discord.app_commands.command(name="quiz")
     async def quiz(self, interaction: discord.Interaction) -> None:
         """Start new quiz."""
-        channel_id = interaction.channel_id
-
         await interaction.response.defer()
+        channel_id = interaction.channel_id
+        server_id = interaction.guild_id
+
         # Check if there's already an active quiz in this channel
         if await db.command_is_active("quiz", channel_id):
             embed = discord.Embed(
@@ -70,9 +72,14 @@ class QuizCommand(commands.Cog):
             )
             await interaction.followup.send(
                 embed=embed,
+                ephemeral=True,
             )
             return
 
+        # Mark quiz started
+        await db.set_command_active("quiz", channel_id)
+
+        # Voting phase =====================================================================
         voting_view = quiz_repo.VotingView()
         await interaction.followup.send(
             f"Choose your topic! Ends **<t:{int(time.time()) + 11}:R>**",
@@ -95,14 +102,14 @@ class QuizCommand(commands.Cog):
                 embed=embed,
                 view=None,
             )
-            db.set_command_inactive("quiz", channel_id)
+            await db.set_command_inactive("quiz", channel_id)
             return
 
         # For dynamic topic
         if has_sub := has_sub_topic(topic):
             topic_id_correct_count = defaultdict(int)
 
-        # Question phase
+        # Question phase ====================================================================
         participants = defaultdict(int)
         for i in range(1, number + 1):
             async with interaction.channel.typing():
@@ -110,9 +117,8 @@ class QuizCommand(commands.Cog):
                 topic_id = get_sub_topic_id(topic, topic_id_correct_count) if has_sub else get_topic_id(topic)
 
                 # Fetch question
-
                 quiz = await get_quizzes_with_token(
-                    channel_id,
+                    server_id,
                     create_api_call(1, topic_id),
                 )
                 quiz = quiz[0]
@@ -127,10 +133,8 @@ class QuizCommand(commands.Cog):
                 )
 
                 # Sending the question
-                if i == number:
-                    content = f"### {i}) {quiz['question']} Quiz ends **<t:{int(time.time()) + 11}:R>**"
-                else:
-                    content = f"### {i}) {quiz['question']} Next question **<t:{int(time.time()) + 11}:R>**"
+                sec = int(time.time()) + 11
+                content = f"### {i}) {quiz['question']} {'Quiz ends' if i == number else 'Next'} **<t:{sec}:R>**"
                 question_view.message = await interaction.channel.send(
                     content=content,
                     view=question_view,
@@ -151,32 +155,8 @@ class QuizCommand(commands.Cog):
                 if has_sub:
                     topic_id_correct_count[topic_id] += 1
 
-        # Retrieve usernames and sort participants by scores
-        top_participants = sorted(
-            participants.items(),
-            key=lambda x: x[1],
-            reverse=True,
-        )[:3]
-        top_users = []
-        for user_id, score in top_participants:
-            user = await interaction.guild.fetch_member(user_id)
-            top_users.append((user.display_name, score))
-
-        # Send the top 3 users
-        if top_users:
-            result_message = ""
-            for rank, (user_name, score) in enumerate(top_users, start=1):
-                result_message += f"{rank}. **{user_name}** - {score} points\n"
-            embed = discord.Embed(
-                title="Top 3 participants",
-                description=result_message,
-                color=discord.Color.blurple(),
-            )
-        else:
-            embed = discord.Embed(
-                title="No participants.",
-                color=discord.Color.red(),
-            )
+        # Results =============================================================================
+        embed = await result_embed(interaction, participants)
         await interaction.channel.send(content="## Quiz ended", embed=embed)
 
         # Mark the quiz as ended

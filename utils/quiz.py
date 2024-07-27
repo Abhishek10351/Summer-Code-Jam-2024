@@ -5,6 +5,7 @@ from collections import defaultdict
 from pathlib import Path
 
 import aiohttp
+import discord
 import requests
 from bs4 import BeautifulSoup
 
@@ -129,12 +130,10 @@ async def fetch_token() -> str:
         return (await response.json())["token"]
 
 
-async def get_quizzes_with_token(channel_id: int, api_url: str) -> list:
+async def get_quizzes_with_token(server_id: int, api_url: str) -> list:
     """Return list of quizzes with token check."""
-    # Reading all tokens
-    channel_tokens = await db.get_token(channel_id)
-
-    if current_token := await db.get_token(channel_id):
+    # If token exists
+    if current_token := await db.get_token(server_id):
         # Current token works
         if json := fetch_json(api_url + f"&token={current_token}"):
             return fetch_quizzes(json)
@@ -142,15 +141,13 @@ async def get_quizzes_with_token(channel_id: int, api_url: str) -> list:
         # Current token no longer works
         await asyncio.sleep(5)
         new_token = await fetch_token()
-        channel_tokens[channel_id] = new_token
-        await db.change_token(channel_id, new_token)
+        await db.change_token(server_id, new_token)
 
         return fetch_quizzes(fetch_json(api_url + f"&token={new_token}"))
 
     # No token yet
     new_token = await fetch_token()
-    channel_tokens[channel_id] = new_token
-    await db.change_token(channel_id, new_token)
+    await db.change_token(server_id, new_token)
     return fetch_quizzes(fetch_json(api_url + f"&token={new_token}"))
 
 
@@ -181,3 +178,33 @@ def learn_more_url(question: str) -> str:
 
     # Default return
     return "https://en.wikipedia.org"
+
+
+async def result_embed(interaction: discord.Interaction, participants: dict) -> discord.Embed:
+    """Return embed for quiz results with top 3."""
+    top_participants = sorted(
+        participants.items(),
+        key=lambda x: x[1],
+        reverse=True,
+    )[:3]
+
+    top_users = []
+    for user_id, score in top_participants:
+        user = await interaction.guild.fetch_member(user_id)
+        top_users.append((user.display_name, score))
+
+    if top_users:
+        result_message = ""
+        for rank, (user_name, score) in enumerate(top_users, start=1):
+            result_message += f"{rank}. **{user_name}** - {score} points\n"
+        embed = discord.Embed(
+            title="Top 3 participants",
+            description=result_message,
+            color=discord.Color.blurple(),
+        )
+    else:
+        embed = discord.Embed(
+            title="No participants.",
+            color=discord.Color.red(),
+        )
+    return embed
