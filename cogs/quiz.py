@@ -34,14 +34,22 @@ class QuizCommand(commands.Cog):
         user = user or interaction.user
         score = await db.get_score(user.id)
         if score:
+            embed = discord.Embed(
+                description=f"{user.mention}'s Score: {score}",
+                color=discord.Color.blurple(),
+            )
             await interaction.followup.send(
-                f"{user.mention}'s Score: {score}",
+                embed=embed,
                 allowed_mentions=None,
                 ephemeral=True,
             )
         else:
+            embed = discord.Embed(
+                description=f"{user.mention} has not attempted the quiz yet.",
+                color=discord.Color.red(),
+            )
             await interaction.followup.send(
-                f"{user.mention} has not attempted the quiz yet.",
+                embed=embed,
                 allowed_mentions=None,
                 ephemeral=True,
             )
@@ -52,12 +60,7 @@ class QuizCommand(commands.Cog):
         channel_id = interaction.channel_id
 
         await interaction.response.defer()
-
-        # await interaction.followup.send_message(
-        #     "Starting a new quiz! Please wait...",
-        # )
-
-        # Voting phase
+        # Check if there's already an active quiz in this channel
         if await db.command_is_active("quiz", channel_id):
             embed = discord.Embed(
                 title="Quiz",
@@ -80,7 +83,18 @@ class QuizCommand(commands.Cog):
         )  # Store the original message in the view
 
         await asyncio.sleep(VOTING_TIME)
-        number, topic = await voting_view.on_timeout()
+        if timeout := await voting_view.on_timeout():
+            number, topic = timeout
+
+        # Quiz is cancelled
+        else:
+            embed = discord.Embed(
+                title="Quiz is cancelled.",
+                color=discord.Color.red(),
+            )
+            await interaction.edit_original_response(content=None, embed=embed, view=None)
+            set_quiz_ended(channel_id)
+            return
 
         # For dynamic topic
         if has_sub := has_sub_topic(topic):
@@ -147,13 +161,20 @@ class QuizCommand(commands.Cog):
 
         # Send the top 3 users
         if top_users:
-            result_message = "## Top 3 participants:\n"
+            result_message = ""
             for rank, (user_name, score) in enumerate(top_users, start=1):
                 result_message += f"{rank}. **{user_name}** - {score} points\n"
+            embed = discord.Embed(
+                title="Top 3 participants",
+                description=result_message,
+                color=discord.Color.blurple(),
+            )
         else:
-            result_message = "## No participants."
-
-        await interaction.channel.send(result_message)
+            embed = discord.Embed(
+                title="No participants.",
+                color=discord.Color.red(),
+            )
+        await interaction.channel.send(content="## Quiz ended", embed=embed)
 
         # Mark the quiz as ended
         await db.set_command_inactive("quiz", channel_id)
