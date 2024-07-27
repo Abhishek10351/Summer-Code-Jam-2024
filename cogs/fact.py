@@ -212,6 +212,15 @@ class FactCommand(commands.Cog):
             view=FactsView(embed=statements_embed, facts=facts, false_index=false_index, correction=correction),
         )
 
+    @app_commands.command(name="hello")
+    async def hello(self, interaction: discord.Interaction) -> None:
+        """Say hello!."""
+        msg = f"Hi, {interaction.user.mention}."
+        fact = await gemini_client.name_fun_fact(interaction.user.display_name)
+        fact = json.loads(fact)["fun_fact"]
+        if fact != "False":
+            msg += f"\nDid you know: {fact}"
+        await interaction.response.send_message(msg)
 
 async def setup(bot: commands.Bot) -> None:
     """Setups the Fact command."""

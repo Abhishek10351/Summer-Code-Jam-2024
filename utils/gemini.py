@@ -28,6 +28,10 @@ summary_template = """Summarize the conversation below:
 """
 
 
+name_fact = """
+Given a username: {name}. Come up with 1 fun fact about this name. If no fun fact can be made, just say False."""
+
+
 class Gemini:
     """Gemini API Client."""
 
@@ -65,6 +69,13 @@ class Gemini:
         """Summarize the conversation."""
         response = await self.model.generate_content_async(
             summary_template.format(text=text),
+        )
+        return await self.verify(response)
+
+    async def name_fun_fact(self, name: str) -> str:
+        """Give a fun fact about username, if nothing found, return False."""
+        response = await self.model.generate_content_async(
+            name_fact.format(name=name),
         )
         return await self.verify(response)
 

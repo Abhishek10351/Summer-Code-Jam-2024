@@ -79,14 +79,6 @@ class Bot(commands.Bot):
 bot = Bot()
 
 
-@bot.tree.command(name="hello")
-async def hello(interaction: discord.Interaction) -> None:
-    """Say hello!."""
-    await interaction.response.send_message(
-        f"Hi, {interaction.user.mention}.. Whatcha doin?",
-    )
-
-
 @bot.tree.command(name="help", description="List of commands and their functions")
 async def help(interaction: discord.Interaction) -> None:
     """Return a list of commands and their functions."""
