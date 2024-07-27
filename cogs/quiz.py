@@ -13,9 +13,6 @@ from utils.quiz import (
     get_sub_topic_id,
     get_topic_id,
     has_sub_topic,
-    is_quiz_active,
-    set_quiz_active,
-    set_quiz_ended,
 )
 
 VOTING_TIME = quiz_repo.voting_time()
@@ -28,44 +25,59 @@ class QuizCommand(commands.Cog):
         """Initialize QuizCommand cog."""
         self.bot = bot
 
-    @bot.tree.command(name="get-score")
-    async def get_score(self, interaction: discord.Interaction, user: discord.Member = None) -> None:
+    @discord.app_commands.command(name="get-score")
+    async def get_score(
+        self, interaction: discord.Interaction, user: discord.Member = None
+    ) -> None:
         """Get the score of a user."""
+        await interaction.response.defer()
         user = user or interaction.user
         score = await db.get_score(user.id)
         if score:
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 f"{user.mention}'s Score: {score}",
                 allowed_mentions=None,
                 ephemeral=True,
             )
         else:
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 f"{user.mention} has not attempted the quiz yet.",
                 allowed_mentions=None,
                 ephemeral=True,
             )
 
-    @bot.tree.command(name="quiz")
+    @discord.app_commands.command(name="quiz")
     async def quiz(self, interaction: discord.Interaction) -> None:
         """Start new quiz."""
         channel_id = interaction.channel_id
 
-        # Check if there's already an active quiz in this channel
-        if is_quiz_active(channel_id):
-            await interaction.response.send_message("A quiz is already running in this channel.", ephemeral=True)
-            return
+        await interaction.response.defer()
 
-        # Mark the quiz as active
-        set_quiz_active(channel_id)
+        # await interaction.followup.send_message(
+        #     "Starting a new quiz! Please wait...",
+        # )
 
         # Voting phase
+        if await db.command_is_active("quiz", channel_id):
+            embed = discord.Embed(
+                title="Quiz",
+                description="A quiz is already running in this channel.",
+                color=discord.Color.red(),
+            )
+            await interaction.followup.send(
+                embed=embed,
+            )
+            return
+
+        await db.set_command_active("quiz", channel_id)
         voting_view = quiz_repo.VotingView()
-        await interaction.response.send_message(
+        await interaction.followup.send(
             f"Choose your topic! Ends **<t:{int(time.time()) + 11}:R>**",
             view=voting_view,
         )
-        voting_view.message = await interaction.original_response()  # Store the original message in the view
+        voting_view.message = (
+            await interaction.original_response()
+        )  # Store the original message in the view
 
         await asyncio.sleep(VOTING_TIME)
         number, topic = await voting_view.on_timeout()
@@ -79,10 +91,16 @@ class QuizCommand(commands.Cog):
         for i in range(1, number + 1):
             async with interaction.channel.typing():
                 # Get topic id dynamically based on previous answers
-                topic_id = get_sub_topic_id(topic, topic_id_correct_count) if has_sub else get_topic_id(topic)
+                topic_id = (
+                    get_sub_topic_id(topic, topic_id_correct_count)
+                    if has_sub
+                    else get_topic_id(topic)
+                )
 
                 # Fetch question
-                quiz = get_quizzes_with_token(channel_id, create_api_call(1, topic_id))[0]
+                quiz = get_quizzes_with_token(channel_id, create_api_call(1, topic_id))[
+                    0
+                ]
 
                 # Generate question UI
                 question_view = quiz_repo.QuestionView(
@@ -119,7 +137,9 @@ class QuizCommand(commands.Cog):
                     topic_id_correct_count[topic_id] += 1
 
         # Retrieve usernames and sort participants by scores
-        top_participants = sorted(participants.items(), key=lambda x: x[1], reverse=True)[:3]
+        top_participants = sorted(
+            participants.items(), key=lambda x: x[1], reverse=True
+        )[:3]
         top_users = []
         for user_id, score in top_participants:
             user = await interaction.guild.fetch_member(user_id)
@@ -136,7 +156,7 @@ class QuizCommand(commands.Cog):
         await interaction.channel.send(result_message)
 
         # Mark the quiz as ended
-        set_quiz_ended(channel_id)
+        await db.set_command_inactive("quiz", channel_id)
 
 
 async def setup(bot: commands.Bot) -> None:
