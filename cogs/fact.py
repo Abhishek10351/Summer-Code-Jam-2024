@@ -176,13 +176,16 @@ class FactCommand(commands.Cog):
             await interaction.followup.send(
                 f"""The prompt **{entry}** can refer to many different things, please be more specific!""",
             )
+            return
         except wikipedia.PageError:
             await interaction.followup.send(
-                f"The prompt **{entry}** did not match any of our searches. Please try again with a differently worded prompt / query.",
+                f"The prompt **{entry}** did not match any of our searches. Please try again with a differently worded prompt / query.",  # noqa: E501
             )
+            return
 
         # Alter 1 fact to become incorrect
         false_index = random.randint(0, number - 1)  # noqa: S311
+        correction = facts[false_index]
         facts[false_index] = create_false_statement(facts[false_index])
 
         # Create embeds for statements
@@ -206,7 +209,7 @@ class FactCommand(commands.Cog):
         await interaction.followup.send(
             content=f"**<t:{int(time.time()) + 60}:R>**",
             embeds=[statements_embed, question_embed],
-            view=FactsView(embed=statements_embed, facts=facts, false_index=false_index),
+            view=FactsView(embed=statements_embed, facts=facts, false_index=false_index, correction=correction),
         )
 
 
