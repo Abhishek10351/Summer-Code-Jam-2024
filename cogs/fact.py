@@ -50,8 +50,9 @@ class FactCommand(commands.Cog):
         # Assign users for the generated convo
         convo_starter = interaction.user
         other_users = random.sample(
-            [member for member in interaction.guild.members if not (member.bot or member==convo_starter)],
-            k=2)
+            [member for member in interaction.guild.members if not (member.bot or member == convo_starter)],
+            k=2,
+        )
         users = [convo_starter, *other_users]
 
         # Set up webhooks with server
@@ -69,7 +70,7 @@ class FactCommand(commands.Cog):
         for message in data:
             user = users[message["userid"] % len(users)]
             avatar_url = user.avatar.url if user.avatar else user.default_avatar.url
-            await asyncio.sleep(len(message["message"])/7)
+            await asyncio.sleep(len(message["message"]) / 7)
             await webhook.send(
                 content=message["message"],
                 username=user.display_name,
@@ -101,6 +102,7 @@ class FactCommand(commands.Cog):
     @app_commands.command(name="shortify")
     async def shortify(self, interaction: discord.Interaction, start: str, end: str) -> None:
         """Summarize the conversation in-between 2 messages."""
+
         def parse_msg_id(arg: str) -> str | ValueError:
             """Verify the input arg is either msg link or msg id."""
             if match := re.match(r"^(?:https:\/\/discord\.com\/channels\/\d+\/\d+\/)*(\d+)$", arg):
@@ -137,7 +139,9 @@ class FactCommand(commands.Cog):
             msg1, msg2 = msg2, msg1
 
         # Attach start and end messages
-        messages = [msg1]+[message async for message in channel.history(after=msg1, before=msg2, limit=None)]+[msg2]
+        messages = (
+            [msg1] + [message async for message in channel.history(after=msg1, before=msg2, limit=None)] + [msg2]
+        )
 
         # Turn into readable convo
         msg_contents = "\n".join([f"{msg.author.display_name}: {await convert_user_tags(msg)}" for msg in messages])
@@ -169,12 +173,16 @@ class FactCommand(commands.Cog):
         try:
             facts = get_wiki_facts(entry, number=number)
         except wikipedia.DisambiguationError:
-            await interaction.followup.send(f"The prompt **{entry}** can refer to many different things, please be more specific!")  # noqa: E501
+            await interaction.followup.send(
+                f"""The prompt **{entry}** can refer to many different things, please be more specific!""",
+            )
         except wikipedia.PageError:
-            await interaction.followup.send(f"The prompt **{entry}** did not match any of our searches. Please try again with a differently worded prompt / query.")  # noqa: E501
+            await interaction.followup.send(
+                f"The prompt **{entry}** did not match any of our searches. Please try again with a differently worded prompt / query.",
+            )
 
         # Alter 1 fact to become incorrect
-        false_index = random.randint(0, number-1)  # noqa: S311
+        false_index = random.randint(0, number - 1)  # noqa: S311
         facts[false_index] = create_false_statement(facts[false_index])
 
         # Create embeds for statements
@@ -184,9 +192,7 @@ class FactCommand(commands.Cog):
             colour=discord.Colour.random(),
         )
         for i in range(len(facts)):
-            statements_embed.add_field(name=f"Statement #{i+1}",
-                            value=facts[i],
-                            inline=False)
+            statements_embed.add_field(name=f"Statement #{i+1}", value=facts[i], inline=False)
         if url := get_wiki_image(entry):
             statements_embed.set_thumbnail(url=url)
 
@@ -200,10 +206,8 @@ class FactCommand(commands.Cog):
         await interaction.followup.send(
             content=f"**<t:{int(time.time()) + 60}:R>**",
             embeds=[statements_embed, question_embed],
-            view=FactsView(embed=statements_embed,
-                           facts=facts,
-                           false_index=false_index),
-                           )
+            view=FactsView(embed=statements_embed, facts=facts, false_index=false_index),
+        )
 
 
 async def setup(bot: commands.Bot) -> None:
