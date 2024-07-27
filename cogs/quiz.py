@@ -4,7 +4,6 @@ from collections import defaultdict
 
 import discord
 from discord.ext import commands
-from main import bot
 from repositories import quiz_repo
 from utils.database import db
 from utils.quiz import (
@@ -27,7 +26,9 @@ class QuizCommand(commands.Cog):
 
     @discord.app_commands.command(name="get-score")
     async def get_score(
-        self, interaction: discord.Interaction, user: discord.Member = None
+        self,
+        interaction: discord.Interaction,
+        user: discord.Member = None,
     ) -> None:
         """Get the score of a user."""
         await interaction.response.defer()
@@ -64,7 +65,7 @@ class QuizCommand(commands.Cog):
         if await db.command_is_active("quiz", channel_id):
             embed = discord.Embed(
                 title="Quiz",
-                description="A quiz is already running in this channel.",
+                description="**A quiz is already running in this channel.**",
                 color=discord.Color.red(),
             )
             await interaction.followup.send(
@@ -72,15 +73,12 @@ class QuizCommand(commands.Cog):
             )
             return
 
-        await db.set_command_active("quiz", channel_id)
         voting_view = quiz_repo.VotingView()
         await interaction.followup.send(
             f"Choose your topic! Ends **<t:{int(time.time()) + 11}:R>**",
             view=voting_view,
         )
-        voting_view.message = (
-            await interaction.original_response()
-        )  # Store the original message in the view
+        voting_view.message = await interaction.original_response()  # Store the original message in the view
 
         await asyncio.sleep(VOTING_TIME)
         if timeout := await voting_view.on_timeout():
@@ -92,8 +90,12 @@ class QuizCommand(commands.Cog):
                 title="Quiz is cancelled.",
                 color=discord.Color.red(),
             )
-            await interaction.edit_original_response(content=None, embed=embed, view=None)
-            set_quiz_ended(channel_id)
+            await interaction.edit_original_response(
+                content=None,
+                embed=embed,
+                view=None,
+            )
+            db.set_command_inactive("quiz", channel_id)
             return
 
         # For dynamic topic
@@ -105,16 +107,15 @@ class QuizCommand(commands.Cog):
         for i in range(1, number + 1):
             async with interaction.channel.typing():
                 # Get topic id dynamically based on previous answers
-                topic_id = (
-                    get_sub_topic_id(topic, topic_id_correct_count)
-                    if has_sub
-                    else get_topic_id(topic)
-                )
+                topic_id = get_sub_topic_id(topic, topic_id_correct_count) if has_sub else get_topic_id(topic)
 
                 # Fetch question
-                quiz = get_quizzes_with_token(channel_id, create_api_call(1, topic_id))[
-                    0
-                ]
+
+                quiz = await get_quizzes_with_token(
+                    channel_id,
+                    create_api_call(1, topic_id),
+                )
+                quiz = quiz[0]
 
                 # Generate question UI
                 question_view = quiz_repo.QuestionView(
@@ -152,7 +153,9 @@ class QuizCommand(commands.Cog):
 
         # Retrieve usernames and sort participants by scores
         top_participants = sorted(
-            participants.items(), key=lambda x: x[1], reverse=True
+            participants.items(),
+            key=lambda x: x[1],
+            reverse=True,
         )[:3]
         top_users = []
         for user_id, score in top_participants:

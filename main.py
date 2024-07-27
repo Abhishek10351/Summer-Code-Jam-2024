@@ -6,8 +6,8 @@ import discord
 from cogwatch import watch
 from discord.ext import commands
 from dotenv import load_dotenv
-
 from utils.database import db
+
 load_dotenv()
 
 BOT_TOKEN = os.getenv("TOKEN")
@@ -93,12 +93,14 @@ async def help(interaction: discord.Interaction) -> None:
     embed = discord.Embed(
         title="Help",
         description="List of commands and their functions",
-        color=discord.Color.from_str("#bb8b3b"),  # Color of the embed, change to whatever you like
+        color=discord.Color.from_str("#bb8b3b"),
     )
     commands = bot.tree.get_commands(guild=MY_GUILD)
     for command in commands:
         if command.name != "help":
-            parameters = ", ".join([app_commands_parameter.name for app_commands_parameter in command.parameters])
+            parameters = ", ".join(
+                [app_commands_parameter.name for app_commands_parameter in command.parameters],
+            )
 
             embed.add_field(
                 name=f"/{command.name}",
