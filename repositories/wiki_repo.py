@@ -40,6 +40,14 @@ class FactsDropdown(Select):
 class FactsView(View):
     """Question view with multiple embeds."""
 
-    def __init__(self, *, timeout:float=60, embed:discord.Embed, facts:list, false_index:int, correction:str) -> None:
+    def __init__(
+        self,
+        *,
+        timeout: float = 60,
+        embed: discord.Embed,
+        facts: list,
+        false_index: int,
+        correction: str,
+    ) -> None:
         super().__init__(timeout=timeout)
         self.add_item(FactsDropdown(embed=embed, facts=facts, false_index=false_index, correction=correction))

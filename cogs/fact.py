@@ -222,6 +222,7 @@ class FactCommand(commands.Cog):
             msg += f"\nDid you know: {fact}"
         await interaction.response.send_message(msg)
 
+
 async def setup(bot: commands.Bot) -> None:
     """Setups the Fact command."""
     await bot.add_cog(FactCommand(bot))
