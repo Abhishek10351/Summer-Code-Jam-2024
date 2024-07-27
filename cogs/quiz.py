@@ -123,7 +123,8 @@ class QuizCommand(commands.Cog):
                 )
                 quiz = quiz[0]
 
-                # Generate question UI
+                # Send the question and store in view
+                content = f"### {i}) {quiz['question']} {'Quiz ends' if i == number else 'Next'} **<t:{int(time.time()) + 11}:R>**"  # noqa: E501
                 question_view = quiz_repo.QuestionView(
                     i,
                     quiz["question"],
@@ -131,10 +132,6 @@ class QuizCommand(commands.Cog):
                     quiz["incorrect_answers"],
                     quiz["type"],
                 )
-
-                # Sending the question
-                sec = int(time.time()) + 11
-                content = f"### {i}) {quiz['question']} {'Quiz ends' if i == number else 'Next'} **<t:{sec}:R>**"
                 question_view.message = await interaction.channel.send(
                     content=content,
                     view=question_view,
@@ -159,7 +156,7 @@ class QuizCommand(commands.Cog):
         embed = await result_embed(interaction, participants)
         await interaction.channel.send(content="## Quiz ended", embed=embed)
 
-        # Mark the quiz as ended
+        # Mark quiz ended
         await db.set_command_inactive("quiz", channel_id)
 
 
