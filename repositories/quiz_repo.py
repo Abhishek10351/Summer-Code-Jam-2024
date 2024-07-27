@@ -24,7 +24,6 @@ class VotingView(View):
         self.cancel_button = CancelButton(voting_view=self, row=2)
         self.add_item(self.cancel_button)
 
-
     async def on_timeout(self) -> None:
         """After timeout, select topic and number of questions for the coming quizzes."""
 
@@ -216,13 +215,13 @@ class CancelButton(Button):
         cancel_value = user_selections.get("cancel", False)
 
         # Register the new vote
-        user_selections["cancel"] = not(cancel_value)
+        user_selections["cancel"] = not (cancel_value)
         self.voting_view.user_votes[user_id] = user_selections
-        self.votes += 1 if not(cancel_value) else -1
+        self.votes += 1 if not (cancel_value) else -1
         self.label = f"{self.label_text} ({self.votes}/{len(self.voting_view.user_votes)})"
 
         # Determine cancel state
-        self.is_cancelled = False if self.votes == 0 else self.votes > len(self.voting_view.user_votes)/2
+        self.is_cancelled = False if self.votes == 0 else self.votes > len(self.voting_view.user_votes) / 2
 
         # Update the view
         await interaction.response.edit_message(view=self.voting_view)
