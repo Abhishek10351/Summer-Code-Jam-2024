@@ -1,20 +1,18 @@
-import csv
+import asyncio
 import html
 import random
-import time
 from collections import defaultdict
-
-# TODO: Convert to MongoDB
 from pathlib import Path
 
+import aiohttp
 import requests
 from bs4 import BeautifulSoup
+
+from utils.database import db
 
 # Setup paths
 CACHE_DIR = Path(".cache")
 CACHE_DIR.mkdir(exist_ok=True)
-ACTIVE_QUIZZES = CACHE_DIR / "active_quizzes.csv"
-QUIZ_TOKENS = CACHE_DIR / "quiz_tokens.csv"
 
 
 def fetch_categories() -> dict:
@@ -61,7 +59,9 @@ def get_sub_topic_id(topic: str, topic_id_correct_count: dict) -> int:
     sorted_correct_count = [
         x[0]
         for x in sorted(
-            topic_id_correct_count.items(), key=lambda x: x[1], reverse=True
+            topic_id_correct_count.items(),
+            key=lambda x: x[1],
+            reverse=True,
         )
     ]
     return weighted_selection(all_topic_ids, sorted_correct_count)
@@ -115,61 +115,43 @@ def fetch_quizzes(json: list) -> list:
     for quiz in json:
         quiz["question"] = html.unescape(quiz["question"])
         quiz["correct_answer"] = html.unescape(quiz["correct_answer"])
-        quiz["incorrect_answers"] = [
-            html.unescape(answer) for answer in quiz["incorrect_answers"]
-        ]
+        quiz["incorrect_answers"] = [html.unescape(answer) for answer in quiz["incorrect_answers"]]
 
         quizzes.append(quiz)
 
     return quizzes
 
 
-def get_quizzes_with_token(channel_id: int, api_url: str) -> list:
+async def fetch_token() -> str:
+    """Fetch a token from the API."""
+    url = "https://opentdb.com/api_token.php?command=request"
+    async with aiohttp.ClientSession().get(url, timeout=3) as response:
+        return (await response.json())["token"]
+
+
+async def get_quizzes_with_token(channel_id: int, api_url: str) -> list:
     """Return list of quizzes with token check."""
     # Reading all tokens
-    channel_tokens = read_tokens()
+    channel_tokens = await db.get_token(channel_id)
 
-    if current_token := channel_tokens.get(channel_id, False):
+    if current_token := await db.get_token(channel_id):
         # Current token works
         if json := fetch_json(api_url + f"&token={current_token}"):
             return fetch_quizzes(json)
 
         # Current token no longer works
-        time.sleep(5)
-        new_token = requests.get(
-            "https://opentdb.com/api_token.php?command=request", timeout=3
-        ).json()["token"]
+        await asyncio.sleep(5)
+        new_token = await fetch_token()
         channel_tokens[channel_id] = new_token
-        write_tokens(channel_tokens)
+        await db.change_token(channel_id, new_token)
+
         return fetch_quizzes(fetch_json(api_url + f"&token={new_token}"))
 
     # No token yet
-    new_token = requests.get(
-        "https://opentdb.com/api_token.php?command=request", timeout=3
-    ).json()["token"]
+    new_token = await fetch_token()
     channel_tokens[channel_id] = new_token
-    write_tokens(channel_tokens)
+    await db.change_token(channel_id, new_token)
     return fetch_quizzes(fetch_json(api_url + f"&token={new_token}"))
-
-
-def read_tokens() -> dict:
-    """Return all currently tokens."""
-    channel_tokens = {}
-    try:
-        with Path.open(QUIZ_TOKENS) as file:
-            reader = csv.reader(file)
-            channel_tokens = {int(row[0]): row[1] for row in reader}
-    except FileNotFoundError:
-        pass
-    return channel_tokens
-
-
-def write_tokens(channel_tokens: dict) -> None:
-    """Write all currently active quizzes to csv."""
-    with Path.open(QUIZ_TOKENS, mode="w", newline="") as file:
-        writer = csv.writer(file)
-        for channel_id in channel_tokens:
-            writer.writerow([channel_id, channel_tokens[channel_id]])
 
 
 def learn_more_url(question: str) -> str:
