@@ -1628,6 +1628,20 @@ files = [
 anyio = ">=3.0.0,<4"
 
 [[package]]
+name = "wikipedia"
+version = "1.4.0"
+description = "Wikipedia API for Python"
+optional = false
+python-versions = "*"
+files = [
+    {file = "wikipedia-1.4.0.tar.gz", hash = "sha256:db0fad1829fdd441b1852306e9856398204dc0786d2996dd2e0c8bb8e26133b2"},
+]
+
+[package.dependencies]
+beautifulsoup4 = "*"
+requests = ">=2.0.0,<3.0.0"
+
+[[package]]
 name = "yarl"
 version = "1.9.4"
 description = "Yet another URL library"
@@ -1733,4 +1747,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "5a0d6752f0929c14f8c3f0cdd65ac003912a26a6a68383b2c4cba176c01ee121"
+content-hash = "27f0b10e58b141e968ff78ca90f8764df8657a083ef6325e5dea3332171b085c"
