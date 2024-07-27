@@ -58,7 +58,12 @@ def get_sub_topic_id(topic: str, topic_id_correct_count: dict) -> int:
     if not topic_id_correct_count:
         return random.choice(all_topic_ids)  # noqa: S311
 
-    sorted_correct_count = [x[0] for x in sorted(topic_id_correct_count.items(), key=lambda x: x[1], reverse=True)]
+    sorted_correct_count = [
+        x[0]
+        for x in sorted(
+            topic_id_correct_count.items(), key=lambda x: x[1], reverse=True
+        )
+    ]
     return weighted_selection(all_topic_ids, sorted_correct_count)
 
 
@@ -110,7 +115,9 @@ def fetch_quizzes(json: list) -> list:
     for quiz in json:
         quiz["question"] = html.unescape(quiz["question"])
         quiz["correct_answer"] = html.unescape(quiz["correct_answer"])
-        quiz["incorrect_answers"] = [html.unescape(answer) for answer in quiz["incorrect_answers"]]
+        quiz["incorrect_answers"] = [
+            html.unescape(answer) for answer in quiz["incorrect_answers"]
+        ]
 
         quizzes.append(quiz)
 
@@ -129,13 +136,17 @@ def get_quizzes_with_token(channel_id: int, api_url: str) -> list:
 
         # Current token no longer works
         time.sleep(5)
-        new_token = requests.get("https://opentdb.com/api_token.php?command=request", timeout=3).json()["token"]
+        new_token = requests.get(
+            "https://opentdb.com/api_token.php?command=request", timeout=3
+        ).json()["token"]
         channel_tokens[channel_id] = new_token
         write_tokens(channel_tokens)
         return fetch_quizzes(fetch_json(api_url + f"&token={new_token}"))
 
     # No token yet
-    new_token = requests.get("https://opentdb.com/api_token.php?command=request", timeout=3).json()["token"]
+    new_token = requests.get(
+        "https://opentdb.com/api_token.php?command=request", timeout=3
+    ).json()["token"]
     channel_tokens[channel_id] = new_token
     write_tokens(channel_tokens)
     return fetch_quizzes(fetch_json(api_url + f"&token={new_token}"))
@@ -159,46 +170,6 @@ def write_tokens(channel_tokens: dict) -> None:
         writer = csv.writer(file)
         for channel_id in channel_tokens:
             writer.writerow([channel_id, channel_tokens[channel_id]])
-
-
-def read_active_quizzes() -> list:
-    """Return all currently active quizzes."""
-    active_quizzes = []
-    try:
-        with Path.open(ACTIVE_QUIZZES) as file:
-            reader = csv.reader(file)
-            active_quizzes = [int(rows[0]) for rows in reader]
-    except FileNotFoundError:
-        pass
-    return active_quizzes
-
-
-def write_active_quizzes(active_quizzes: list) -> None:
-    """Write all currently active quizzes to csv."""
-    with Path.open(ACTIVE_QUIZZES, mode="w", newline="") as file:
-        writer = csv.writer(file)
-        for channel_id in active_quizzes:
-            writer.writerow([channel_id])
-
-
-def is_quiz_active(channel_id: int) -> bool:
-    """Check if a quiz is active in channel."""
-    active_quizzes = read_active_quizzes()
-    return channel_id in active_quizzes
-
-
-def set_quiz_active(channel_id: int) -> None:
-    """Mark a channel as having active quiz."""
-    active_quizzes = read_active_quizzes()
-    active_quizzes.append(channel_id)
-    write_active_quizzes(active_quizzes)
-
-
-def set_quiz_ended(channel_id: int) -> None:
-    """Remove quiz from active list."""
-    active_quizzes = read_active_quizzes()
-    active_quizzes.remove(channel_id)
-    write_active_quizzes(active_quizzes)
 
 
 def learn_more_url(question: str) -> str:
