@@ -25,8 +25,8 @@ class QuizCommand(commands.Cog):
         """Initialize QuizCommand cog."""
         self.bot = bot
 
-    @discord.app_commands.command(name="get-score")
-    async def get_score(
+    @discord.app_commands.command(name="score")
+    async def score(
         self,
         interaction: discord.Interaction,
         user: discord.Member = None,

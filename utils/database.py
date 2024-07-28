@@ -27,7 +27,7 @@ class Database:
     async def set_score(self, user_id: int, server_id: int, score: int) -> None:
         """Set the score of a user."""
         await self.scores.update_one(
-            {"user_id": user_id,  "server_id": server_id},
+            {"user_id": user_id, "server_id": server_id},
             {"$set": {"score": score}},
             upsert=True,
         )

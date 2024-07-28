@@ -164,9 +164,9 @@ class FactCommand(commands.Cog):
             )
             await interaction.followup.send(content=None, embed=embed)
 
-    @app_commands.command(name="search", description="Return a number of random facts based on the prompt")
-    async def search(self, interaction: discord.Interaction, entry: str, number: int = 5) -> None:
-        """Generate a list of statements about topic. User must find the one that is incorrect."""
+    @app_commands.command()
+    async def factpedia(self, interaction: discord.Interaction, entry: str, number: int = 5) -> None:
+        """Generate a list of Wikipedia statements about topic. Find the one that is incorrect."""
         await interaction.response.defer()
 
         # Fetching facts from Wiki
@@ -206,11 +206,13 @@ class FactCommand(commands.Cog):
         )
 
         # Send the message containing 2 embeds and a drop select
-        view = FactsView(embed=statements_embed,
-                         facts=facts,
-                         false_index=false_index,
-                         correction=correction,
-                         caller=interaction.user.id)
+        view = FactsView(
+            embed=statements_embed,
+            facts=facts,
+            false_index=false_index,
+            correction=correction,
+            caller=interaction.user.id,
+        )
         view.message = await interaction.followup.send(
             embeds=[statements_embed, question_embed],
             view=view,

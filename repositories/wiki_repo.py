@@ -63,11 +63,9 @@ class FactsView(View):
         self.correction = correction
         self.caller = caller
         self.message: discord.Message = None
-        self.add_item(FactsDropdown(embed=embed,
-                                    facts=facts,
-                                    false_index=false_index,
-                                    correction=correction,
-                                    caller=caller))
+        self.add_item(
+            FactsDropdown(embed=embed, facts=facts, false_index=false_index, correction=correction, caller=caller),
+        )
 
     async def on_timeout(self) -> None:
         """Handle the view timing out."""

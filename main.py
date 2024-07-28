@@ -90,15 +90,16 @@ async def help(interaction: discord.Interaction) -> None:
     commands = bot.tree.get_commands(guild=MY_GUILD)
     for command in commands:
         if command.name != "help":
-            parameters = ", ".join(
-                [app_commands_parameter.name for app_commands_parameter in command.parameters],
+            desc = command.description
+            params = ", ".join(
+                [parameters.name for parameters in command.parameters],
             )
 
             embed.add_field(
                 name=f"/{command.name}",
-                value=f"**`Description:`**\n*{command.description}*\n**`Parameters`**: *{parameters}*",
+                value=f"**Description:**\n*{desc}*{f'\n**Parameters**: *{params}*' if params else ''}",
                 inline=True,
-            )  # How each command is displayed
+            )
 
     await interaction.response.send_message(embed=embed)
 
