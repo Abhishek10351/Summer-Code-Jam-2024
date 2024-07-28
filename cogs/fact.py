@@ -201,15 +201,15 @@ class FactCommand(commands.Cog):
 
         # Create embed for more info
         question_embed = discord.Embed(
-            title="Choose the incorrect statement!",
+            title=f"Choose the incorrect statement!\nTime's up **<t:{int(time.time()) + 60}:R>**",
             color=discord.Color.gold(),
         )
 
         # Send the message containing 2 embeds and a drop select
-        await interaction.followup.send(
-            content=f"**<t:{int(time.time()) + 60}:R>**",
+        view = FactsView(embed=statements_embed, facts=facts, false_index=false_index, correction=correction)
+        view.message = await interaction.followup.send(
             embeds=[statements_embed, question_embed],
-            view=FactsView(embed=statements_embed, facts=facts, false_index=false_index, correction=correction),
+            view=view,
         )
 
     @app_commands.command(name="hello")

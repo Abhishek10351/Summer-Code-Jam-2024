@@ -124,7 +124,7 @@ class QuizCommand(commands.Cog):
                 quiz = quiz[0]
 
                 # Send the question and store in view
-                content = f"### {i}) {quiz['question']} {'Quiz ends' if i == number else 'Next'} **<t:{int(time.time()) + 11}:R>**"  # noqa: E501
+                content = f"### {i}) {quiz['question']} {'Quiz ends ' if i == number else 'Next '} **<t:{int(time.time()) + 11}:R>**"  # noqa: E501
                 question_view = quiz_repo.QuestionView(
                     i,
                     quiz["question"],

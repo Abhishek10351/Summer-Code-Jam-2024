@@ -50,4 +50,17 @@ class FactsView(View):
         correction: str,
     ) -> None:
         super().__init__(timeout=timeout)
+        self.embed = embed
+        self.facts = facts
+        self.false_index = false_index
+        self.correction = correction
         self.add_item(FactsDropdown(embed=embed, facts=facts, false_index=false_index, correction=correction))
+
+    async def on_timeout(self) -> None:
+        """Handle the view timing out."""
+        correction_embed = discord.Embed(
+            title="Time's Up!",
+            description=f"The False Statement was #{self.false_index+1}: {self.facts[self.false_index]}\nCorrection: {self.correction}",  # noqa: E501
+            color=discord.Color.orange(),
+        )
+        await self.message.edit(view=None, embeds=[self.embed, correction_embed])
