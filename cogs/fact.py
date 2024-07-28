@@ -232,13 +232,11 @@ class FactCommand(commands.Cog):
 
 async def setup(bot: commands.Bot) -> None:
     """Setups the Fact command."""
-
     cog = FactCommand(bot)
 
     @bot.tree.context_menu(name="short")
     async def shortify_context(interaction: discord.Interaction, message: discord.Message) -> None:
         """Summarize the conversation in-between 2 messages."""
-        # await interaction.response.defer()
         messages = await db.set_shortify_cache(interaction.user.id, message.channel.id, message.id)
         if messages:
             await cog.shortify.callback(cog, interaction, str(messages[0]), str(messages[1]))

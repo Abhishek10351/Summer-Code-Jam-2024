@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import List, Any
+from typing import Any
 
 import motor.motor_asyncio
 
@@ -100,6 +100,7 @@ class Database:
         await self.shortify_cache.insert_one(
             {"user_id": user_id, "channel_id": channel_id, "message_id": message_id},
         )
+        return None
 
     async def close(self) -> None:
         """Close the database connection."""
