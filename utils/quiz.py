@@ -178,7 +178,7 @@ def learn_more_url(question: str) -> str:
 async def get_top_participants(
     interaction: discord.Interaction,
     participants: dict,
-    limit: int=3,
+    limit: int = 3,
 ) -> list:
     """Return top 3 participants."""
     top_participants = sorted(
