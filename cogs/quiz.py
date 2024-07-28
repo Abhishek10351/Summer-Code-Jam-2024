@@ -56,6 +56,14 @@ class QuizCommand(commands.Cog):
                 ephemeral=True,
             )
 
+    @discord.app_commands.command()
+    async def leaderboard(self, interaction: discord.Interaction) -> None:
+        """Return the server's leaderboabrd."""
+        await interaction.response.defer()
+        leaderboard = await db.get_leaderboard(interaction.guild_id)
+        embed = await result_embed(interaction, leaderboard, 5)
+        await interaction.followup.send(embed=embed)
+
     @discord.app_commands.command(name="quiz")
     async def quiz(self, interaction: discord.Interaction) -> None:
         """Start new quiz."""
@@ -153,7 +161,7 @@ class QuizCommand(commands.Cog):
                     topic_id_correct_count[topic_id] += 1
 
         # Results =============================================================================
-        embed = await result_embed(interaction, participants)
+        embed = await result_embed(interaction, participants, 3)
         await interaction.channel.send(content="## Quiz ended", embed=embed)
 
         # Mark quiz ended

@@ -32,6 +32,16 @@ class Database:
             upsert=True,
         )
 
+    async def get_leaderboard(self, server_id: int, limit: int = 5) -> dict:
+        """Return the highest scoring users in server."""
+        top_users = self.scores.find({"server_id": server_id}).sort("score", -1).limit(limit)
+        leaderboard = {}
+        async for document in top_users:
+            user_id = document.get("user_id")
+            score = document.get("score")
+            leaderboard[user_id] = score
+        return leaderboard
+
     async def command_is_active(self, command_name: str, channel_id: int) -> bool:
         """Check if a command is active."""
         command = await self.commands_cache.find_one(

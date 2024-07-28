@@ -175,13 +175,13 @@ def learn_more_url(question: str) -> str:
     return "https://en.wikipedia.org"
 
 
-async def result_embed(interaction: discord.Interaction, participants: dict) -> discord.Embed:
+async def result_embed(interaction: discord.Interaction, participants: dict, limit: int) -> discord.Embed:
     """Return embed for quiz results with top 3."""
     top_participants = sorted(
         participants.items(),
         key=lambda x: x[1],
         reverse=True,
-    )[:3]
+    )[:limit]
 
     top_users = []
     for user_id, score in top_participants:
@@ -193,7 +193,7 @@ async def result_embed(interaction: discord.Interaction, participants: dict) -> 
         for rank, (user_name, score) in enumerate(top_users, start=1):
             result_message += f"{rank}. **{user_name}** - {score} points\n"
         embed = discord.Embed(
-            title="Top 3 participants",
+            title=f"Top {limit} players",
             description=result_message,
             color=discord.Color.blurple(),
         )
