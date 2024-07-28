@@ -6,7 +6,6 @@ import discord
 from cogwatch import watch
 from discord.ext import commands
 from dotenv import load_dotenv
-from utils.database import db
 
 load_dotenv()
 
@@ -63,6 +62,8 @@ class Bot(commands.Bot):
     @watch(path="cogs", default_logger=False)
     async def on_ready(self) -> None:
         """Call when bot is logged in."""
+        from utils.database import db
+
         await db.clear_command_cache()
         await bot.change_presence(activity=discord.Game(name="/help"))
         logger.info("Logged in as %s (ID: %s)", bot.user, bot.user.id)
