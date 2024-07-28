@@ -198,7 +198,7 @@ async def get_top_participants(
 async def result_embed(
     interaction: discord.Interaction,
     participants: dict,
-    lint:int=3
+    limit:int=3
 ) -> discord.Embed:
     """Return embed for quiz results with top 3."""
     top_users = await get_top_participants(interaction, participants,limit)
