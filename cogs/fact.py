@@ -206,7 +206,11 @@ class FactCommand(commands.Cog):
         )
 
         # Send the message containing 2 embeds and a drop select
-        view = FactsView(embed=statements_embed, facts=facts, false_index=false_index, correction=correction)
+        view = FactsView(embed=statements_embed,
+                         facts=facts,
+                         false_index=false_index,
+                         correction=correction,
+                         caller=interaction.user.id)
         view.message = await interaction.followup.send(
             embeds=[statements_embed, question_embed],
             view=view,
