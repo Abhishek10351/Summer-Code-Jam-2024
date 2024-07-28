@@ -6,7 +6,6 @@ import discord
 from cogwatch import watch
 from discord.ext import commands
 from dotenv import load_dotenv
-from utils.database import db
 
 load_dotenv()
 
@@ -56,13 +55,13 @@ class Bot(commands.Bot):
         """Setups hook for the bot."""
         # This copies the global commands over to your guild.
         await self.load_extensions()
-        self.tree._guild_commands[MY_GUILD.id] = self.tree._global_commands
-        self.tree._global_commands = {}
-        await self.tree.sync(guild=MY_GUILD)
+        await self.tree.sync()
 
     @watch(path="cogs", default_logger=False)
     async def on_ready(self) -> None:
         """Call when bot is logged in."""
+        from utils.database import db
+
         await db.clear_command_cache()
         await bot.change_presence(activity=discord.Game(name="/help"))
         logger.info("Logged in as %s (ID: %s)", bot.user, bot.user.id)
@@ -87,18 +86,19 @@ async def help(interaction: discord.Interaction) -> None:
         description="List of commands and their functions",
         color=discord.Color.from_str("#bb8b3b"),
     )
-    commands = bot.tree.get_commands(guild=MY_GUILD)
+    commands = bot.tree.get_commands()
     for command in commands:
         if command.name != "help":
-            parameters = ", ".join(
-                [app_commands_parameter.name for app_commands_parameter in command.parameters],
+            desc = command.description
+            params = ", ".join(
+                [parameters.name for parameters in command.parameters],
             )
 
             embed.add_field(
                 name=f"/{command.name}",
-                value=f"**`Description:`**\n*{command.description}*\n**`Parameters`**: *{parameters}*",
+                value=f"**Description:**\n*{desc}*{f'\n**Parameters**: *{params}*' if params else ''}",
                 inline=True,
-            )  # How each command is displayed
+            )
 
     await interaction.response.send_message(embed=embed)
 

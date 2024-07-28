@@ -5,9 +5,10 @@ from discord.ui import Select, View
 class FactsDropdown(Select):
     """Drop down selection for answers."""
 
-    def __init__(self, facts: list, embed: discord.Embed, false_index: int, correction: str) -> None:
+    def __init__(self, facts: list, embed: discord.Embed, false_index: int, correction: str, caller: int) -> None:
         self.embed = embed
         self.false_index = false_index
+        self.caller = caller
 
         options = [discord.SelectOption(label=f"Statement #{i+1}", value=i) for i in range(len(facts))]
 
@@ -26,6 +27,11 @@ class FactsDropdown(Select):
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Register user's choice and return the answer."""
+        # Only caller can interact
+        if interaction.user.id != self.caller:
+            await interaction.response.send_message("You're not allowed to select.", ephemeral=True)
+            return
+
         self.disabled = True
         embeds = [self.embed]
 
@@ -48,6 +54,24 @@ class FactsView(View):
         facts: list,
         false_index: int,
         correction: str,
+        caller: int,
     ) -> None:
         super().__init__(timeout=timeout)
-        self.add_item(FactsDropdown(embed=embed, facts=facts, false_index=false_index, correction=correction))
+        self.embed = embed
+        self.facts = facts
+        self.false_index = false_index
+        self.correction = correction
+        self.caller = caller
+        self.message: discord.Message = None
+        self.add_item(
+            FactsDropdown(embed=embed, facts=facts, false_index=false_index, correction=correction, caller=caller),
+        )
+
+    async def on_timeout(self) -> None:
+        """Handle the view timing out."""
+        correction_embed = discord.Embed(
+            title="Time's Up!",
+            description=f"The False Statement was #{self.false_index+1}: {self.facts[self.false_index]}\nCorrection: {self.correction}",  # noqa: E501
+            color=discord.Color.orange(),
+        )
+        await self.message.edit(view=None, embeds=[self.embed, correction_embed])

@@ -2,7 +2,6 @@ import asyncio
 import html
 import random
 from collections import defaultdict
-from pathlib import Path
 
 import aiohttp
 import discord
@@ -10,10 +9,6 @@ import requests
 from bs4 import BeautifulSoup
 
 from utils.database import db
-
-# Setup paths
-CACHE_DIR = Path(".cache")
-CACHE_DIR.mkdir(exist_ok=True)
 
 
 def fetch_categories() -> dict:
@@ -183,34 +178,37 @@ def learn_more_url(question: str) -> str:
 async def get_top_participants(
     interaction: discord.Interaction,
     participants: dict,
+    limit:int=3
 ) -> list:
     """Return top 3 participants."""
     top_participants = sorted(
         participants.items(),
         key=lambda x: x[1],
         reverse=True,
-    )[:3]
+    )[:limit]
 
     top_users = []
     for user_id, score in top_participants:
         user = await interaction.guild.fetch_member(user_id)
         top_users.append((user, score))
     return top_users
+    
 
 
 async def result_embed(
     interaction: discord.Interaction,
     participants: dict,
+    lint:int=3
 ) -> discord.Embed:
     """Return embed for quiz results with top 3."""
-    top_users = await get_top_participants(interaction, participants)
+    top_users = await get_top_participants(interaction, participants,limit)
 
     if top_users:
         result_message = ""
         for rank, (user, score) in enumerate(top_users, start=1):
             result_message += f"{rank}. **{user.display_name}** - {score} points\n"
         embed = discord.Embed(
-            title="Top 3 participants",
+            title=f"Top {limit} players",
             description=result_message,
             color=discord.Color.blurple(),
         )

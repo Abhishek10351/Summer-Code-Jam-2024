@@ -14,6 +14,7 @@ class VotingView(View):
         super().__init__(timeout=None)
         self.user_votes = {}
         self.topic_ids = fetch_categories()
+        self.message: discord.Message = None
 
         for topic in [*random.sample(list(self.topic_ids.keys()), 3), "Random"]:
             self.add_item(TopicButton(label=topic, value=topic, voting_view=self, row=0))
@@ -147,6 +148,7 @@ class QuestionView(View):
         self.correct = correct
         self.incorrects = incorrects
         self.url = learn_more_url(self.question)
+        self.message: discord.Message = None
 
         if type == "multiple":
             answers = [*incorrects, correct]

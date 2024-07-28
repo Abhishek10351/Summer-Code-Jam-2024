@@ -28,8 +28,8 @@ class QuizCommand(commands.Cog):
         """Initialize QuizCommand cog."""
         self.bot = bot
 
-    @discord.app_commands.command(name="get-score")
-    async def get_score(
+    @discord.app_commands.command(name="score")
+    async def score(
         self,
         interaction: discord.Interaction,
         user: discord.Member = None,
@@ -37,7 +37,7 @@ class QuizCommand(commands.Cog):
         """Get the score of a user."""
         await interaction.response.defer()
         user = user or interaction.user
-        score = await db.get_score(user.id)
+        score = await db.get_score(user.id, interaction.guild_id)
         if score:
             embed = discord.Embed(
                 description=f"{user.mention}'s Score: {score}",
@@ -58,6 +58,14 @@ class QuizCommand(commands.Cog):
                 allowed_mentions=None,
                 ephemeral=True,
             )
+
+    @discord.app_commands.command()
+    async def leaderboard(self, interaction: discord.Interaction) -> None:
+        """Return the server's leaderboabrd."""
+        await interaction.response.defer()
+        leaderboard = await db.get_leaderboard(interaction.guild_id)
+        embed = await result_embed(interaction, leaderboard, 5)
+        await interaction.followup.send(embed=embed)
 
     @discord.app_commands.command(name="quiz")
     async def quiz(self, interaction: discord.Interaction) -> None:
@@ -127,7 +135,7 @@ class QuizCommand(commands.Cog):
                 quiz = quiz[0]
 
                 # Send the question and store in view
-                content = f"### {i}) {quiz['question']} {'Quiz ends' if i == number else 'Next'} **<t:{int(time.time()) + 11}:R>**"  # noqa: E501
+                content = f"### {i}) {quiz['question']} {'Quiz ends ' if i == number else 'Next '} **<t:{int(time.time()) + 11}:R>**"  # noqa: E501
                 question_view = quiz_repo.QuestionView(
                     i,
                     quiz["question"],
@@ -148,15 +156,15 @@ class QuizCommand(commands.Cog):
             # Track correct answers
             for user_id in correct_users:
                 participants[user_id] += 1
-                score = await db.get_score(user_id)
-                await db.set_score(user_id, score + 1)
+                score = await db.get_score(user_id, server_id)
+                await db.set_score(user_id, server_id, score + 1)
 
                 # Register topic_id is correctly answered (for dynamic topic)
                 if has_sub:
                     topic_id_correct_count[topic_id] += 1
 
         # Results =============================================================================
-        embed = await result_embed(interaction, participants)
+        embed = await result_embed(interaction, participants, 3)
         await interaction.channel.send(content="## Quiz ended", embed=embed)
         top_participants = await get_top_participants(interaction, participants)
         if top_participants:
