@@ -62,6 +62,7 @@ class FactsView(View):
         self.false_index = false_index
         self.correction = correction
         self.caller = caller
+        self.message: discord.Message = None
         self.add_item(FactsDropdown(embed=embed,
                                     facts=facts,
                                     false_index=false_index,
