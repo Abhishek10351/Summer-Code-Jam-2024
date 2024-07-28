@@ -34,7 +34,7 @@ class QuizCommand(commands.Cog):
         """Get the score of a user."""
         await interaction.response.defer()
         user = user or interaction.user
-        score = await db.get_score(user.id)
+        score = await db.get_score(user.id, interaction.guild_id)
         if score:
             embed = discord.Embed(
                 description=f"{user.mention}'s Score: {score}",
@@ -145,8 +145,8 @@ class QuizCommand(commands.Cog):
             # Track correct answers
             for user_id in correct_users:
                 participants[user_id] += 1
-                score = await db.get_score(user_id)
-                await db.set_score(user_id, score + 1)
+                score = await db.get_score(user_id, server_id)
+                await db.set_score(user_id, server_id, score + 1)
 
                 # Register topic_id is correctly answered (for dynamic topic)
                 if has_sub:

@@ -2,7 +2,6 @@ import asyncio
 import html
 import random
 from collections import defaultdict
-from pathlib import Path
 
 import aiohttp
 import discord
@@ -10,10 +9,6 @@ import requests
 from bs4 import BeautifulSoup
 
 from utils.database import db
-
-# Setup paths
-CACHE_DIR = Path(".cache")
-CACHE_DIR.mkdir(exist_ok=True)
 
 
 def fetch_categories() -> dict:
