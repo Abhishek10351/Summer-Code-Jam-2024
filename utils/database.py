@@ -1,5 +1,6 @@
 import logging
 import os
+from typing import List, Any
 
 import motor.motor_asyncio
 
@@ -13,9 +14,11 @@ class Database:
         """Form Database Connection."""
         self.client = motor.motor_asyncio.AsyncIOMotorClient(database)
         self.db = self.client["bot-data"]
+
         self.scores = self.db["scores"]
         self.commands_cache = self.db["commands_cache"]
         self.quiz_tokens = self.db["quiz_tokens"]
+        self.shortify_cache = self.db["shortify_cache"]
 
         logger.info("Connected to MongoDB database.")
 
@@ -81,6 +84,21 @@ class Database:
             {"server_id": server_id},
             {"$set": {"token": token}},
             upsert=True,
+        )
+
+    async def get_shortify_cache(self, user_id: int, channel_id: int) -> dict:
+        """Get shortify cache."""
+        return await self.shortify_cache.find_one({"user_id": user_id, "channel_id": channel_id})
+
+    async def set_shortify_cache(self, user_id: int, channel_id: int, message_id: int) -> list[int | Any]:
+        """Set shortify cache."""
+        old_cache = await self.get_shortify_cache(user_id, channel_id)
+        if old_cache:
+            await self.shortify_cache.delete_one({"user_id": user_id, "channel_id": channel_id})
+            return sorted([old_cache["message_id"], message_id])
+
+        await self.shortify_cache.insert_one(
+            {"user_id": user_id, "channel_id": channel_id, "message_id": message_id},
         )
 
     async def close(self) -> None:
